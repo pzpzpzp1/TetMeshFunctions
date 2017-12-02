@@ -25,6 +25,7 @@ end
 
 %% create test singular primal curve
 hold on; axis equal;
+Adj = sparse(nonboundaryedges(:,1),nonboundaryedges(:,2),1:(size(nonboundaryedges,1)));
 scatter3(data.vertices(:,1),data.vertices(:,2),data.vertices(:,3),1,'b');
 nonboundaryedges = data.edges(find(~data.isBoundaryEdge),:);
 startedge = randi(size(nonboundaryedges,1));
@@ -33,13 +34,39 @@ endpoints = nonboundaryedges(startedge,:);
 plot3(v(:,1),v(:,2),v(:,3),'r');
 notdone = any(data.isBoundaryVertex(endpoints));
 curve = startedge;
+curveV = nonboundaryedges(startedge,:);
 while notdone
     
-    if(data.isBoundaryVertex(endpoints(1)))
+    if(~data.isBoundaryVertex(endpoints(1)))
+        e1 = endpoints(1);
         
+        candidateNv1 = find(Adj(e1,:));
+        candidateNv2 = find(Adj(:,e1));
+        
+        candidateEdges1 = Adj(e1,:);
+        candidateEdges2 = Adj(:,e1);
+        
+        candidateNv = [candidateNv1 candidateNv1'];
+        candidateEdges = [candidateEdges1 candidateEdges2'];
     end
     
-    if(data.isBoundaryVertex(endpoints(2)))
+    if(~data.isBoundaryVertex(endpoints(2)))
+        e1 = endpoints(2);
+        
+        candidateNv1 = find(Adj(e1,:));
+        candidateNv2 = find(Adj(:,e1));
+        
+        candidateEdges1 = Adj(e1,:);
+        candidateEdges2 = Adj(:,e1);
+        
+        candidateNv = [candidateNv1 candidateNv1'];
+        candidateEdges = [candidateEdges1 candidateEdges2'];
+        
+        RemoveV = [curveV];
+        removeIndicator = (sum(RemoveV == candidateNv',2) > 0)';
+        candidateNv(removeIndicator ) = [];
+        candidateEdges(removeIndicator ) = [];
+        
     end
     
    
