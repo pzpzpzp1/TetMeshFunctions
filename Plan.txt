@@ -1,0 +1,31 @@
+Algorithm to generate dual surface bound by primal edge loop L
+
+Construct primal spanning tree T spanning primal vertices.
+T = T U S_e
+0) Find all edges satisfying all these conditions
+1) adding the edge to T closes a cycle around a dual edge.
+2) The dual edge closed is not adjacent to the primary singular loop L and is also not adjacent to the boundary
+3) T = T U E
+4) if E != 0, goto 0
+
+draw primal spanning tree excluding boundary edges.
+close primal loop for triangle faces adj to boundary if it has only 1 primal edge left.
+
+If a triangle face has 2 edges in the spanning tree, the dual edge corresponding to the triangle face is guaranteed to be a boundary of the dual surface.
+A dual edge can only be a boundary of the dual surface if it's adjacent to the curve or adj to boundary. This means a triangle face with one edge open must have vertices on the boundary or curve.
+All triangles need to have at least 1 filled in edge in order to be manifold
+maybe we need a spanning face tree that spans edges?? though that's not a graph.
+
+resulting dual surface needs to be bounded by curves that are closely adjacent to the boundary and primal curve. meaning triangles are exempt from being in the tree only if they have 2 vertices on the boundary/curve.
+
+Any exempt triangle results in nonmanifold-ness.
+
+boundary primal edges being included in the tree results in no non-manifoldness near the boundary.
+
+We want every triangle to have 0 untreed edges unless it has 2 untreed edges, 
+It can have just 1 untreed edge iff it shares verts on the boundary or curve. 
+No dual surface has no boundary. That would correspond to the dual cell surface of a primal vertex, but since all vertices are spanned by the tree, an entire dual cell can't be part of the dual surface.
+
+need a protocol to handle primal faces with no edges in the tree. Maybe create a different kind of tree that always takes an edge of every triangle.
+so spans half edges? 
+
