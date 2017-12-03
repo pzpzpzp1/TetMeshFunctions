@@ -84,7 +84,7 @@ end
 fprintf("Curve accepted \n");
 
 %% Try to close dual edges until no more can be closed
-method = 1
+method = 2
 while method == 1
     method = -1;
     dualEdges = 1:data.numTriangles;
@@ -117,6 +117,10 @@ end
 while method == 2
     method = -1;
     
+    % TODO: The problem is lots of triangles aren't in dualEdgesToClose and so
+    % are never subjected to possibly closing. Need a reason to close
+    % boundary touching triangles!!
+    
     dualEdges = 1:data.numTriangles;
     % get dual edges adjacent to the boundary. i.e. triangles with any boundary
     % vert. Or dual edges adjacent to the curve.
@@ -128,23 +132,21 @@ while method == 2
     dualEdgesToKeepOpen = unique([dualEdgesCloseToBoundary; dualEdgesCloseToCurve])';
     dualEdgesToClose = dualEdges; dualEdgesToClose(dualEdgesToKeepOpen)=[];
 
-    % find the dual edges that are one edge away from closing.
-    GrowingTree = data.PrimalVolumeVertexSpanningTree;
+    % Construct the tree representing uncut portions of the mesh.
+    GrowingTree = data.BoundaryLessPrimalSpanningTreeRelToEdges;
+    GrowingTree = [GrowingTree; find(data.isBoundaryEdge)];
     inTreeIndicator = sparse(GrowingTree(:), ones(numel(GrowingTree),1),ones(numel(GrowingTree),1)); inTreeIndicator(data.numEdges+1)=0;
     readyToClose = find(sum(inTreeIndicator(data.triangles(dualEdgesToClose,:)),2)==2);
-
+    % find the dual edges that are one edge away from closing.
     while(numel(readyToClose) ~= 0)
         trisToClose = data.triangles(dualEdgesToClose(readyToClose),:);
         edgeIndsToCloseTris = find(~inTreeIndicator(data.triangles(dualEdgesToClose(readyToClose),:)));
         edgesToCloseTris = trisToClose(edgeIndsToCloseTris);
 
-        GrowingTree = [GrowingTree edgesToCloseTris']; InTreeIndicator(edgesToCloseTris)=1;
+        GrowingTree = [GrowingTree; edgesToCloseTris]; InTreeIndicator(edgesToCloseTris)=1;
         dualEdgesToClose = ARemoveB(dualEdgesToClose, dualEdgesToClose(readyToClose));
         readyToClose = find(sum(inTreeIndicator(data.triangles(dualEdgesToClose,:)),2)==2);
-
     end
-    
-    
     
 end
 
