@@ -1,4 +1,8 @@
-function T = PrimalVolumeVertexSpanningTree(edges)
+function T = PrimalVolumeVertexSpanningTree(edges) %, exclude)
+    %if(argin == 1)
+    %    exclude = [];
+    %end
+
     verts = sort(unique(edges(:)));
     visitedV = verts(1);
     completedV = [];

@@ -294,10 +294,18 @@ function data = paul_getTetData(T,X)
     nonBoundaryTrianglesToTets = reshape(nonBoundaryTrianglesToTets,2,numel(nonBoundaryTrianglesToTets)/2)';
     data.nonBoundaryTrianglesToTets = nonBoundaryTrianglesToTets;
     
+    %% separate nonboundary and boundary edges
+    data.NonBoundaryEdges = data.edges(find(~data.isBoundaryEdge),:);
+    data.BoundaryEdges = data.edges(find(data.isBoundaryEdge),:);
+    
+    
     %% compute primal spanning tree of the volume. spans vertices
     data.PrimalVolumeVertexSpanningTree = PrimalVolumeVertexSpanningTree(data.edges);
     % compute dual spanning tree of the volume. spans tets
     data.DualVolumeVertexSpanningTree = DualVolumeVertexSpanningTree(data);
+    % compute primal spanning tree of volume WITHOUT BOUNDARY EDGES
+    Inds=find(~data.isBoundaryEdge); Inds = Inds(PrimalVolumeVertexSpanningTree(data.NonBoundaryEdges));
+    data.BoundaryLessPrimalSpanningTreeRelToEdges = Inds;
     
     
     
