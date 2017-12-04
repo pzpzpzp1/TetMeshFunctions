@@ -29,3 +29,13 @@ No dual surface has no boundary. That would correspond to the dual cell surface 
 need a protocol to handle primal faces with no edges in the tree. Maybe create a different kind of tree that always takes an edge of every triangle.
 so spans half edges? 
 
+finally after some bugs, arrived at a half reasonable result.
+Used boundary less primal tree, followed by adding in the boundary.
+result is a surface that mostly wraps the curve itself, without interacting with boundary
+except when very close to it.
+
+What's needed to fix this issue, is probably primal edges added to the tree in a non twisting manner from the curve.
+unsure if they should be added before or after the primal tree is constructed. but the idea is it cuts the dual surface wrapping the curve 
+so it cant bound itself.
+
+
