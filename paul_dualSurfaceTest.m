@@ -1,9 +1,9 @@
 basepath = [userpath '\..\'];
 addpath(genpath([basepath 'jsolomon']));
 
-%filename = 'jsolomon\octahedral_frames\meshes\torus\torus1k.1';
+filename = 'jsolomon\octahedral_frames\meshes\torus\torus1k.1';
 %filename = 'jsolomon\octahedral_frames\meshes\moomoo\moomoo.1';
-filename = 'jsolomon\octahedral_frames\meshes\torus\torus_39k';
+%filename = 'jsolomon\octahedral_frames\meshes\torus\torus_39k';
 %filename = 'jsolomon\octahedral_frames\meshes\elk\elk18k.1';
 %elkFrame = 'jsolomon\octahedral_frames\comparison_data\FF_ray_sokolov\FFfull\elk_18k_frame.txt';
 %filename = 'jsolomon\octahedral_frames\comparison_data\FF_ray_sokolov\FFfull\elk_18k';
@@ -85,7 +85,6 @@ inds = find(~data.isBoundaryEdge); curveEdges = inds(curve); % reindex curve to 
 fprintf("Curve accepted \n");
 
 %% Try to close dual edges until no more can be closed
-method = -1;
 dualEdges = 1:data.numTriangles;
 % get dual edges adjacent to the boundary. i.e. triangles with any boundary
 % vert. Or dual edges adjacent to the curve.
@@ -98,7 +97,8 @@ dualEdgesToClose = dualEdges; dualEdgesToClose(dualEdgesToKeepOpen)=[];
 % find the dual edges that are one edge away from closing.
 GrowingTree = data.PrimalVolumeVertexSpanningTree;
 GrowingTree = data.BoundaryLessPrimalSpanningTreeRelToEdges';
-GrowingTree = unique([GrowingTree find(data.isBoundaryEdge)']);
+%GrowingTree = unique([GrowingTree find(data.isBoundaryEdge)' curveEdges']);
+GrowingTree = unique([GrowingTree curveEdges']);
 
 inTreeIndicator = sparse(GrowingTree(:), ones(numel(GrowingTree),1),ones(numel(GrowingTree),1)); inTreeIndicator(data.numEdges+1)=0;
 readyToClose = find(sum(inTreeIndicator(data.trianglesToEdges(dualEdgesToClose,:)),2)==2);
@@ -114,10 +114,12 @@ while(numel(readyToClose) ~= 0)
     dualEdgesToClose = ARemoveB(dualEdgesToClose, dualEdgesToClose(readyToClose));
     readyToClose = find(sum(inTreeIndicator(data.trianglesToEdges(dualEdgesToClose,:)),2)==2);
 end
+indexInDualEdgesToCloseForNonManifoldTriangles = find(sum(inTreeIndicator(data.trianglesToEdges),2)==0);
 
 
 % compute dual surface boundaries. (dual edges = triangles)
 DualSurfaceBoundaries = find(sum(inTreeIndicator(data.trianglesToEdges),2)==2);
+
 
 %% assert triangles are all adj to boundary or curveV
 for i = 1:numel(DualSurfaceBoundaries)
@@ -140,12 +142,12 @@ DualSurfaceBoundaries = ARemoveB(DualSurfaceBoundaries', find(data.isBoundaryTri
 m = reshape(cell2mat(data.trianglesToTets(DualSurfaceBoundaries)),2,numel(DualSurfaceBoundaries));
 p1 = data.tetBarycenters(m(1,:)',:);
 p2 = data.tetBarycenters(m(2,:)',:);
-interp = [0:.1:1]; final = [];
+interp = [0:.05:1]; final = [];
 for i = 1:numel(interp)
     inter = interp(i) * p1 + p2 * (1-interp(i)); final = [final; inter];
 end
 f = figure; hold on; axis equal; 
-scatter3(final(:,1),final(:,2),final(:,3),.1);
+scatter3(final(:,1),final(:,2),final(:,3),2);
 boundaryverts = data.vertices(find(data.isBoundaryVertex),:);
 scatter3(boundaryverts(:,1),boundaryverts(:,2),boundaryverts(:,3),1);
 VisualizeEdges(curveEdges, data, '-', f);

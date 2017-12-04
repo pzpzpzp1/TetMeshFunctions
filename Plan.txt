@@ -36,6 +36,13 @@ except when very close to it.
 
 What's needed to fix this issue, is probably primal edges added to the tree in a non twisting manner from the curve.
 unsure if they should be added before or after the primal tree is constructed. but the idea is it cuts the dual surface wrapping the curve 
-so it cant bound itself.
+so it cant bound itself. Another thought is to create the primal surface first, and add that to the tree (before or after). this stops the dual surface from closing on itself.
 
+add the curve to the tree
+Non manifold locations are described by both primal tets and primal triangles.
+primal triangles with no edges in the tree, or primal tets with 1 or 2 adj edges in tree. maybe some other primal tet conditions.
+
+Can include entire toilet paper roll around the singular curve. and also probably can be non manifold.
+1) include the entire cylinder,
+2) visualize boundary dual edges.
 
