@@ -1,15 +1,21 @@
+% startVert allows specifying of which connected component the tree is on.
+% but in current use, there's only one component.
 function T = PrimalVolumeVertexSpanningTreeMoreOps(edges, exclude, include, startVert)
-    assert(numel(include)==0); % include isn't supported yet. 
+    assert(numel(intersect(include, exclude))==0); % include needs to have no intersect with exclude. or it doesn't make sense.
+    assert(numel(include) * numel(startVert) == 0); % specifying include means a startVert is easily obtained already. don't allow overspecification. that leads to bugs and confusing usage.
+    
     edgesWithExclusion = edges; edgesWithExclusion(exclude,:)=[];
     edgesWithExclusionInds = 1:size(edges,1); edgesWithExclusionInds(exclude)=[];
     
+    isIncluded = sparse(include,ones(numel(include),1),ones(numel(include),1)); isIncluded(size(edges,1)+1)=0;
+    isIncluded (exclude)=[]; includeWithExclusion = find(isIncluded);
     
     verts = sort(unique(edgesWithExclusion));
-    visitedV = startVert;
+    visitedV = [unique(edges(include,:))' startVert];
     completedV = [];
     Adjacency = sparse(edgesWithExclusion(:,1), edgesWithExclusion(:,2), 1:size(edgesWithExclusion,1));
     Adjacency(numel(verts),numel(verts))=0; 
-    T = []; 
+    T = includeWithExclusion'; 
     
     while numel(completedV) ~= numel(verts)
         nleft = numel(verts) - numel(completedV);
@@ -18,6 +24,10 @@ function T = PrimalVolumeVertexSpanningTreeMoreOps(edges, exclude, include, star
         end
         
         if numel(visitedV) == 0
+            % this part isn't actually reachable in the way this method is currently used. 
+            % no point engineering a general purpose method when I only have a specific use. 
+            % exclude won't disconnect vertices. it effectively removes some but the remainder is still connected.
+            assert(0==1); 
             'Graph is not connected! Propagation finished'
             T = full(edgesWithExclusionInds(T));
             return;

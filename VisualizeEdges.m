@@ -14,7 +14,7 @@ function f = VisualizeEdges(edgeInds, data, type, f)
             final = [final; p1*interp(i) + p2*(1-interp(i))];
             
         end
-        scatter3(final(:,1),final(:,2),final(:,3),.1);
+        scatter3(final(:,1),final(:,2),final(:,3),.1,'green');
         
     elseif type == '-'
         for i = 1:numel(edgeInds)
