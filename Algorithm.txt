@@ -1,0 +1,45 @@
+Algorithm to generate dual surface bound by primal edge curve L that doesnt intersect primal edge curve L2
+
+Let L be a set of edges representing interior curve L that intersects the boundary at 2 points.
+Let L2 be a set of edges representing curve(s) L2.
+Let V\L be the set of vertices that don't include vertices in curve L.
+Let E(L) be the set of edges that share vertices with the vertices in curve L.
+
+Construct primal spanning tree T that spans V\L with edges that don't contain E(L), and does contain L2.
+1) T = L2 (Note that at this point T could already have cycles. We refer to it as spanning tree only in spirit.)
+2) candidate edges that can be added into T are those that are adjacent to T at only one vertex, and not in E(L) 
+3) greedily add candidate edges until no more edges can be added.
+
+For every triangle that doesn't share vertices with primal curve L, check how many edges of the triangle are in T.
+If 2 of its edges are in T, add the 3rd edge into T.
+Repeat until no more primal triangles remain that have 2 edges in T.
+
+The dual surface is composed of all dual faces represented by primal edges that are not in T.
+------------------------------------------------------
+Understanding the result of the algorithm:
+Primal triangles that have exactly 0 primal edges in T represent locations where the dual surface is non-manifold. Three dual faces share the single dual edge represented by the primal triangle. 
+Primal triangles that have exactly 1 primal edge in T represent locations where 2 dual surfaces pass through the triangle. These make the majority of the dual surface.
+Primal triangles that have exactly 2 primal edges in T represent boundaries of the dual surface. The dual edge that is the primal triangle is the dual surface boundary. (By construction, we iterate the algorithm until these don't exist)
+Primal triangles that have exactly 3 primal edges in T represent locations that don't interact with the dual surface in any way.
+
+By construction of the spanning tree, the dual surface is not capable of intersecting L2. This is because the entirety of L2 is in T.
+By construction of the spanning tree, the primal vertices V\L of the volume mesh can not be separated into multiple components by the dual surface. This is because the primal spanning tree is connected to every primal vertex except for those in L.
+The dual surface forms a cylinder around the primal curve L. This is because we exclude E(L) from the primal tree T.
+
+The boundary of the dual surface is made by intersection with the boundary of the mesh. These result in primal boundary triangles with 0 or 1 primal edges in the spanning tree T. 
+The boundary of the dual surface is also made by non-manifold intersection of the dual surface with the dual cylinder wrapping primal curve L.
+
+------------------------------------------------------
+Matlab implementation result:
+The dual surface is represented by green patches.
+The blue curve is where the dual surface intersects with the boundary of the tet mesh. These are dual edges of the surface mesh.
+The purple curve is L
+The green curve is L2
+The red curves represent non-manifold locations of the dual surface.
+
+------------------------------------------------------
+Limitations:
+There is no explicit prohibition of non-manifold locations in the algorithm. Empirically there are few non-manifold locations, but they exist.
+In the current implementation, primal edge curves L and L2 can not be adjacent. It shouldn't take much to remove this limitation or work around it though.
+The current implementation also allows the dual surface to include edges adjacent to L2. If that is undesirable we can consider adding those edges to T in the initial step. Alternatively, subdividing the mesh could work.
+When running this algorithm on a torus, the union of 2 surfaces could be the solution. 1. the dual surface cutting the torus into a ball, and 2. the dual surface bounded by L. If these surfaces collide, the resulting dual surface can look complicated e.g. torusDualSliceUnionCut.fig.
