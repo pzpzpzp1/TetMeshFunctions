@@ -53,8 +53,8 @@ exclude = edgesAdjToCurve; % include the boundary in the tree. empirically, decr
 include = curveEdges2;
 vinds = 1:data.numVertices; vinds(curveV)=[];
 startVert = vinds(1);
-data.BoundaryLessPrimalSpanningTreeRelToEdges = PrimalVolumeVertexSpanningTreeMoreOps(data.edges, exclude, [], startVert);
-%data.BoundaryLessPrimalSpanningTreeRelToEdges = PrimalVolumeVertexSpanningTreeMoreOps(data.edges, exclude, include, []);
+%data.BoundaryLessPrimalSpanningTreeRelToEdges = PrimalVolumeVertexSpanningTreeMoreOps(data.edges, exclude, [], startVert);
+data.BoundaryLessPrimalSpanningTreeRelToEdges = PrimalVolumeVertexSpanningTreeMoreOps(data.edges, exclude, include, []);
 assert(numel(intersect(data.BoundaryLessPrimalSpanningTreeRelToEdges, curveEdges))==0); % by construction, curve shouldn't be in the tree yet.
 data.BoundaryLessPrimalSpanningTreeRelToEdges = [data.BoundaryLessPrimalSpanningTreeRelToEdges curveEdges'];
 % VisualizeGraph(data.edges, data.vertices, 'r', 1, data.BoundaryLessPrimalSpanningTreeRelToEdges)    
