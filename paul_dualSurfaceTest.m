@@ -85,17 +85,16 @@ while ~donechoosing
     assert(all(data.isBoundaryVertex(endpoints)));
     donechoosing = input('Is this curve good enough? Answer 0 or 1. ');
 end
-% *** note curve above is indexed into nonboundaryedges not data.edges.
 inds = find(~data.isBoundaryEdge); curveEdges = inds(curve); % reindex curve to data.edges.
 fprintf("Curve accepted \n");
 close;
 
-% compute tree without boundary, and without edges adj to curve, and with
-% curve.
+%% compute tree without boundary, and without edges adj to curve, and with curve.
 v2v = sparse(data.edges(:,1),data.edges(:,2),1:size(data.edges,1)); v2v(data.numVertices+1,data.numVertices+1)=0;
 es = [v2v(curveV,:) v2v(:,curveV)'];
 edgesAdjToCurve = full(sort(unique(es(find(es~=0)))));
 exclude = unique([find(data.isBoundaryEdge); edgesAdjToCurve]);
+exclude = edgesAdjToCurve; % include the boundary in the tree. hopefully, decreases non manifold areas at boundary.
 include = curveEdges;
 vinds = 1:data.numVertices; vinds(curveV)=[];
 startVert = vinds(1);

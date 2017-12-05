@@ -52,6 +52,10 @@ The cone of edges adj to the curve that we initialize to not be in the tree will
 The dual surface that results wraps the curve in a cylinder, and then extends to the boundary.
 
 In the torus case or higher genus case, the final solution can contain a union of the dual surface as well as surfaces that cut the mesh into a ball. Image of example attached.
+
 *****************************************
+Empirically result seems to have less non manifold locations when boundary is included in the tree initialization. Which makes sense as all vertices are connected. it's impossible to separate any vertex from any other by the dual surface. 
+
+Oddly enough, there are configurations where non manifold locations appear on the dual surface interior, while not separating any vertices from the rest. Nothing in our current approach is capable of getting around that. But for zipping, I think that may not be a problem.
 *****************************************
 Remains to add other singularities to avoid. Probably need to add before generating tree.
