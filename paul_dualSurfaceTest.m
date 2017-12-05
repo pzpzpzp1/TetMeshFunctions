@@ -140,14 +140,10 @@ while(numel(readyToClose) ~= 0)
     dualEdgesToClose = ARemoveB(dualEdgesToClose, dualEdgesToClose(readyToClose));
     readyToClose = find(sum(inTreeIndicator(data.trianglesToEdges(dualEdgesToClose,:)),2)==2);
 end
-indexInDualEdgesToCloseForNonManifoldTriangles = find(sum(inTreeIndicator(data.trianglesToEdges),2)==0);
-
 
 % compute dual surface boundaries. (dual edges = triangles)
+% assert these triangles are all adj to boundary or curveV
 DualSurfaceBoundaries = find(sum(inTreeIndicator(data.trianglesToEdges),2)==2);
-
-
-%% assert triangles are all adj to boundary or curveV
 for i = 1:numel(DualSurfaceBoundaries)
     tri = data.triangles(DualSurfaceBoundaries(i),:);
     inter = intersect([find(data.isBoundaryVertex) curveV], tri);
@@ -156,19 +152,40 @@ for i = 1:numel(DualSurfaceBoundaries)
         assert(0==1);
     end
 end
-
 size(GrowingTree)
-%% Sanity check for a correct algorithm: this should be empty
-indexInDualEdgesToCloseForNonManifoldTriangles = find(sum(inTreeIndicator(data.trianglesToEdges),2)==0);
-size(indexInDualEdgesToCloseForNonManifoldTriangles)
 
 %% Visualize remaining surface
 EdgesRemaining = 1:data.numEdges;
 EdgesRemaining(GrowingTree)=[];
-f = VisualizeDualEdges(data, EdgesRemaining, 'p');
+f = VisualizeDualSurface(data, EdgesRemaining, 'p');
 VisualizeEdges(curveEdges, data, '-',f);
 
-%% Visualize boundary edges of the dual surface (that dont hit boundary of volume)
+%% Visualize non manifold locations: this should be very low. possibly empty depending on variations.
+indexNonManifoldTriangles = find(sum(inTreeIndicator(data.trianglesToEdges),2)==0);
+indexNonManifoldBoundaryTriangles = indexNonManifoldTriangles(find(data.isBoundaryTriangle(indexNonManifoldTriangles)));
+m = reshape(cell2mat(data.trianglesToTets(indexNonManifoldBoundaryTriangles)),1,numel(indexNonManifoldBoundaryTriangles));
+p1 = data.tetBarycenters(m,:);
+p2 = data.triangleBarycenters(indexNonManifoldBoundaryTriangles,:);
+interp = [0:.05:1]; final = [];
+for i = 1:numel(interp)
+    inter = interp(i) * p1 + p2 * (1-interp(i)); final = [final; inter];
+end
+figure(f); hold on; axis equal; 
+scatter3(final(:,1),final(:,2),final(:,3),1,'red');
+
+indexNonManifoldIntTriangles = indexNonManifoldTriangles(find(~data.isBoundaryTriangle(indexNonManifoldTriangles)));
+m = reshape(cell2mat(data.trianglesToTets(indexNonManifoldIntTriangles)),2,numel(indexNonManifoldIntTriangles));
+p1 = data.tetBarycenters(m(1,:)',:);
+p2 = data.tetBarycenters(m(2,:)',:);
+interp = [0:.05:1]; final = [];
+for i = 1:numel(interp)
+    inter = interp(i) * p1 + p2 * (1-interp(i)); final = [final; inter];
+end
+figure(f); hold on; axis equal; 
+scatter3(final(:,1),final(:,2),final(:,3),2,'red');
+VisualizeEdges(curveEdges, data, '-', f);
+
+%% Visualize boundary edges of the dual surface (that dont hit boundary of volume) Usually no contribution.
 DualSurfaceBoundaries = find(sum(inTreeIndicator(data.trianglesToEdges),2)==2);
 DualSurfaceBoundaries = ARemoveB(DualSurfaceBoundaries', find(data.isBoundaryTriangle)');
 m = reshape(cell2mat(data.trianglesToTets(DualSurfaceBoundaries)),2,numel(DualSurfaceBoundaries));
@@ -180,11 +197,9 @@ for i = 1:numel(interp)
 end
 figure(f); hold on; axis equal; 
 scatter3(final(:,1),final(:,2),final(:,3),2,'red');
-%boundaryverts = data.vertices(find(data.isBoundaryVertex),:);
-%scatter3(boundaryverts(:,1),boundaryverts(:,2),boundaryverts(:,3),1);
 VisualizeEdges(curveEdges, data, '-', f);
 
-% correspond to dual surface intersecting volume boundary.
+%% correspond to dual surface intersecting volume boundary.
 boundaryEdgesNotInTree = ARemoveB(find(data.isBoundaryEdge)', GrowingTree);
 btris = [];
 for i = 1:numel(boundaryEdgesNotInTree)
@@ -204,17 +219,17 @@ scatter3(final(:,1),final(:,2),final(:,3),2,'blue');
 boundaryTrianglesWhoseDualEdgesAreBoundaries = find(sum(inTreeIndicator(data.trianglesToEdges(find(data.isBoundaryTriangle),:)),2)==2);
 assert(numel(boundaryTrianglesWhoseDualEdgesAreBoundaries)==0);
 
-% Number of edges adj to curve that arent the curve that end up in the
-% tree. Have not prevented any from entering explicitly after
-% initializiation. My guess is it's always 0 but through no particular
-% proof. also im not sure it really matters
+% Sanity check. Number of edges adj to curve that arent the curve that end up in the
+% tree. This is provably 0. consider any triangle adj to the curve. it has
+% at least 2 edges in the edgesAdjToCurve set, which are not an will not
+% ever be in the tree. so these edges will never get added to the tree.
 assert(numel(ARemoveB(intersect(edgesAdjToCurve,GrowingTree)',curveEdges'))==0);
 
 %% Simple Visualize remaining surface
 %{
 EdgesRemaining = 1:data.numEdges;
 EdgesRemaining(GrowingTree)=[];
-f=VisualizeDualEdges(data, EdgesRemaining, '.');
+f=VisualizeDualSurface(data, EdgesRemaining, '.');
 VisualizeEdges(curveEdges, data, '.',f);
 %}
 

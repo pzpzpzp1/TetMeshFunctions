@@ -47,4 +47,11 @@ Can include entire toilet paper roll around the singular curve. and also probabl
 2) visualize boundary dual edges.
 
 *************** pretty good results so far.
+Provable or well understood aspects are that due to the spanning tree connecting all interior vertices, non manifold locations are very limited. The final dual surface can't separate the interior vertices. The only locations where it could happen are at the boundary vertices, which is strictly because the tree doesn't include boundary vertices to begin with. 
+The cone of edges adj to the curve that we initialize to not be in the tree will never be filled in the zipping of the tree. because each of those triangles adj to the curve have at least 2 edges adj to the curve. this guarantees edges of these triangles will never be added to the tree.
+The dual surface that results wraps the curve in a cylinder, and then extends to the boundary.
+
+In the torus case or higher genus case, the final solution can contain a union of the dual surface as well as surfaces that cut the mesh into a ball. Image of example attached.
+*****************************************
+*****************************************
 Remains to add other singularities to avoid. Probably need to add before generating tree.
