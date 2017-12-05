@@ -20,7 +20,7 @@ function f = VisualizeEdges(edgeInds, data, type, f)
         for i = 1:numel(edgeInds)
             e = data.edges(edgeInds(i),:);
             vs = data.vertices(e',:);
-            plot3(vs(:,1),vs(:,2),vs(:,3),'r');
+            plot3(vs(:,1),vs(:,2),vs(:,3),'Color',[1 0 1],'LineWidth',1.5);
         end
     else
         error('type not supported');

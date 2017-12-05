@@ -1,10 +1,10 @@
 basepath = [userpath '\..\'];
 addpath(genpath([basepath 'jsolomon']));
 
-filename = 'jsolomon\octahedral_frames\meshes\torus\torus1k.1';
+%filename = 'jsolomon\octahedral_frames\meshes\torus\torus1k.1';
 %filename = 'jsolomon\octahedral_frames\meshes\moomoo\moomoo.1';
 %filename = 'jsolomon\octahedral_frames\meshes\torus\torus_39k';
-%filename = 'jsolomon\octahedral_frames\meshes\elk\elk18k.1';
+filename = 'jsolomon\octahedral_frames\meshes\elk\elk18k.1';
 %elkFrame = 'jsolomon\octahedral_frames\comparison_data\FF_ray_sokolov\FFfull\elk_18k_frame.txt';
 %filename = 'jsolomon\octahedral_frames\comparison_data\FF_ray_sokolov\FFfull\elk_18k';
 [X,T]=loadTetGenMesh([basepath filename]);
@@ -83,6 +83,7 @@ end
 % *** note curve above is indexed into nonboundaryedges not data.edges.
 inds = find(~data.isBoundaryEdge); curveEdges = inds(curve); % reindex curve to data.edges.
 fprintf("Curve accepted \n");
+close;
 
 %% Try to close dual edges until no more can be closed
 dualEdges = 1:data.numTriangles;
@@ -136,6 +137,12 @@ size(GrowingTree)
 indexInDualEdgesToCloseForNonManifoldTriangles = find(sum(inTreeIndicator(data.trianglesToEdges),2)==0);
 size(indexInDualEdgesToCloseForNonManifoldTriangles)
 
+%% Visualize remaining surface
+EdgesRemaining = 1:data.numEdges;
+EdgesRemaining(GrowingTree)=[];
+f = VisualizeDualEdges(data, EdgesRemaining, 'p');
+VisualizeEdges(curveEdges, data, '-',f);
+
 %% Visualize boundary edges of the dual surface (that dont hit boundary of volume)
 DualSurfaceBoundaries = find(sum(inTreeIndicator(data.trianglesToEdges),2)==2);
 DualSurfaceBoundaries = ARemoveB(DualSurfaceBoundaries', find(data.isBoundaryTriangle)');
@@ -146,24 +153,40 @@ interp = [0:.05:1]; final = [];
 for i = 1:numel(interp)
     inter = interp(i) * p1 + p2 * (1-interp(i)); final = [final; inter];
 end
-f = figure; hold on; axis equal; 
-scatter3(final(:,1),final(:,2),final(:,3),2);
-boundaryverts = data.vertices(find(data.isBoundaryVertex),:);
-scatter3(boundaryverts(:,1),boundaryverts(:,2),boundaryverts(:,3),1);
+figure(f); hold on; axis equal; 
+scatter3(final(:,1),final(:,2),final(:,3),2,'red');
+%boundaryverts = data.vertices(find(data.isBoundaryVertex),:);
+%scatter3(boundaryverts(:,1),boundaryverts(:,2),boundaryverts(:,3),1);
 VisualizeEdges(curveEdges, data, '-', f);
 
-%% Visualize remaining surface
-EdgesRemaining = 1:data.numEdges;
-EdgesRemaining(GrowingTree)=[];
-f = VisualizeDualEdges(data, EdgesRemaining, 'p');
-VisualizeEdges(curveEdges, data, '-',f);
+% correspond to dual surface intersecting volume boundary.
+boundaryEdgesNotInTree = ARemoveB(find(data.isBoundaryEdge)', GrowingTree);
+btris = [];
+for i = 1:numel(boundaryEdgesNotInTree)
+    triangleFan = data.edgesToTrianglesUnoriented{boundaryEdgesNotInTree(i)};
+    % btris should always be n x 2
+    btris = [btris; triangleFan(find(data.isBoundaryTriangle(triangleFan)))];
+end
+p1 = data.triangleBarycenters(btris(:,1),:); p2 = data.triangleBarycenters(btris(:,2),:);
+interp = 0:.05:1; final = [];
+for i = 1:numel(interp)
+    final = [final; p1*interp(i)+p2*(1-interp(i))];
+end
+scatter3(final(:,1),final(:,2),final(:,3),2,'blue');
+
+% boundary edges that aren't in tree make dual surface boundaries on the
+% primal surface. Method seems to leave none of these?
+boundaryTrianglesWhoseDualEdgesAreBoundaries = find(sum(inTreeIndicator(data.trianglesToEdges(find(data.isBoundaryTriangle),:)),2)==2);
+assert(numel(boundaryTrianglesWhoseDualEdgesAreBoundaries)==0);
+
 
 %% Simple Visualize remaining surface
+%{
 EdgesRemaining = 1:data.numEdges;
 EdgesRemaining(GrowingTree)=[];
 f=VisualizeDualEdges(data, EdgesRemaining, '.');
 VisualizeEdges(curveEdges, data, '.',f);
-
+%}
 
 
 
