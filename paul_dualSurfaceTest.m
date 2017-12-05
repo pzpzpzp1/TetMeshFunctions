@@ -5,6 +5,11 @@ addpath(genpath([basepath 'jsolomon']));
 %filename = 'jsolomon\octahedral_frames\meshes\moomoo\moomoo.1';
 %filename = 'jsolomon\octahedral_frames\meshes\torus\torus_39k';
 filename = 'jsolomon\octahedral_frames\meshes\elk\elk18k.1';
+filename = 'jsolomon\octahedral_frames\meshes\cylinder\cylinder_18k.1';
+filename = 'jsolomon\octahedral_frames\meshes\cube\cube_tri.1';
+filename = 'jsolomon\octahedral_frames\meshes\sphere\spherer.1';
+filename = 'jsolomon\octahedral_frames\meshes\sphere\sphere_61k';
+
 %elkFrame = 'jsolomon\octahedral_frames\comparison_data\FF_ray_sokolov\FFfull\elk_18k_frame.txt';
 %filename = 'jsolomon\octahedral_frames\comparison_data\FF_ray_sokolov\FFfull\elk_18k';
 [X,T]=loadTetGenMesh([basepath filename]);
@@ -96,7 +101,7 @@ dualEdgesToKeepOpen = unique([dualEdgesCloseToBoundary; dualEdgesCloseToCurve])'
 dualEdgesToClose = dualEdges; dualEdgesToClose(dualEdgesToKeepOpen)=[];
 
 % find the dual edges that are one edge away from closing.
-GrowingTree = data.PrimalVolumeVertexSpanningTree;
+%GrowingTree = data.PrimalVolumeVertexSpanningTree;
 GrowingTree = data.BoundaryLessPrimalSpanningTreeRelToEdges';
 %GrowingTree = unique([GrowingTree find(data.isBoundaryEdge)' curveEdges']);
 GrowingTree = unique([GrowingTree curveEdges']);
