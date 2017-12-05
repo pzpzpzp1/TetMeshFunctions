@@ -46,3 +46,5 @@ Can include entire toilet paper roll around the singular curve. and also probabl
 1) include the entire cylinder in primal edges. this probably involves building the tree without these edges and not allowing these edges to be added in. The result is a disconnected tree? hav to be careful about that.
 2) visualize boundary dual edges.
 
+*************** pretty good results so far.
+Remains to add other singularities to avoid. Probably need to add before generating tree.

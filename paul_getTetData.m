@@ -306,8 +306,10 @@ function data = paul_getTetData(T,X)
     % data.DualVolumeVertexSpanningTree = DualVolumeVertexSpanningTree(data);
     
     % compute primal spanning tree of volume WITHOUT BOUNDARY EDGES
-    Inds=find(~data.isBoundaryEdge); Inds = Inds(PrimalVolumeVertexSpanningTree(data.NonBoundaryEdges));
-    data.BoundaryLessPrimalSpanningTreeRelToEdges = Inds;
+    %Inds=find(~data.isBoundaryEdge); Inds = Inds(PrimalVolumeVertexSpanningTree(data.NonBoundaryEdges));
+    %data.BoundaryLessPrimalSpanningTreeRelToEdges = Inds;
+    
+    
     
     
     

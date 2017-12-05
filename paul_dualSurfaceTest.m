@@ -3,12 +3,12 @@ addpath(genpath([basepath 'jsolomon']));
 
 %filename = 'jsolomon\octahedral_frames\meshes\torus\torus1k.1';
 %filename = 'jsolomon\octahedral_frames\meshes\moomoo\moomoo.1';
-%filename = 'jsolomon\octahedral_frames\meshes\torus\torus_39k';
-filename = 'jsolomon\octahedral_frames\meshes\elk\elk18k.1';
-filename = 'jsolomon\octahedral_frames\meshes\cylinder\cylinder_18k.1';
-filename = 'jsolomon\octahedral_frames\meshes\cube\cube_tri.1';
-filename = 'jsolomon\octahedral_frames\meshes\sphere\spherer.1';
-filename = 'jsolomon\octahedral_frames\meshes\sphere\sphere_61k';
+filename = 'jsolomon\octahedral_frames\meshes\torus\torus_39k';
+%filename = 'jsolomon\octahedral_frames\meshes\elk\elk18k.1';
+%filename = 'jsolomon\octahedral_frames\meshes\cylinder\cylinder_18k.1';
+%filename = 'jsolomon\octahedral_frames\meshes\cube\cube_tri.1';
+%filename = 'jsolomon\octahedral_frames\meshes\sphere\spherer.1';
+%filename = 'jsolomon\octahedral_frames\meshes\sphere\sphere_61k';
 
 %elkFrame = 'jsolomon\octahedral_frames\comparison_data\FF_ray_sokolov\FFfull\elk_18k_frame.txt';
 %filename = 'jsolomon\octahedral_frames\comparison_data\FF_ray_sokolov\FFfull\elk_18k';
@@ -90,6 +90,26 @@ inds = find(~data.isBoundaryEdge); curveEdges = inds(curve); % reindex curve to 
 fprintf("Curve accepted \n");
 close;
 
+% compute tree without boundary, and without edges adj to curve, and with
+% curve.
+v2v = sparse(data.edges(:,1),data.edges(:,2),1:size(data.edges,1)); v2v(data.numVertices+1,data.numVertices+1)=0;
+es = [v2v(curveV,:) v2v(:,curveV)'];
+edgesAdjToCurve = full(sort(unique(es(find(es~=0)))));
+exclude = unique([find(data.isBoundaryEdge); edgesAdjToCurve]);
+include = curveEdges;
+vinds = 1:data.numVertices; vinds(curveV)=[];
+startVert = vinds(1);
+data.BoundaryLessPrimalSpanningTreeRelToEdges = PrimalVolumeVertexSpanningTreeMoreOps(data.edges, exclude, [], startVert);
+assert(numel(intersect(data.BoundaryLessPrimalSpanningTreeRelToEdges, curveEdges))==0); % by construction, curve shouldn't be in the tree yet.
+data.BoundaryLessPrimalSpanningTreeRelToEdges = [data.BoundaryLessPrimalSpanningTreeRelToEdges curveEdges'];
+%VisualizeGraph(data.edges, vertices, color, pauseTim, edgeSubset)
+
+%Inds=find(~data.isBoundaryEdge); Inds = Inds(PrimalVolumeVertexSpanningTree(data.NonBoundaryEdges));
+%data.BoundaryLessPrimalSpanningTreeRelToEdges = Inds;
+    
+
+
+
 %% Try to close dual edges until no more can be closed
 dualEdges = 1:data.numTriangles;
 % get dual edges adjacent to the boundary. i.e. triangles with any boundary
@@ -102,9 +122,9 @@ dualEdgesToClose = dualEdges; dualEdgesToClose(dualEdgesToKeepOpen)=[];
 
 % find the dual edges that are one edge away from closing.
 %GrowingTree = data.PrimalVolumeVertexSpanningTree;
-GrowingTree = data.BoundaryLessPrimalSpanningTreeRelToEdges';
+GrowingTree = data.BoundaryLessPrimalSpanningTreeRelToEdges;
 %GrowingTree = unique([GrowingTree find(data.isBoundaryEdge)' curveEdges']);
-GrowingTree = unique([GrowingTree curveEdges']);
+%GrowingTree = unique([GrowingTree curveEdges']);
 
 inTreeIndicator = sparse(GrowingTree(:), ones(numel(GrowingTree),1),ones(numel(GrowingTree),1)); inTreeIndicator(data.numEdges+1)=0;
 readyToClose = find(sum(inTreeIndicator(data.trianglesToEdges(dualEdgesToClose,:)),2)==2);
@@ -184,6 +204,11 @@ scatter3(final(:,1),final(:,2),final(:,3),2,'blue');
 boundaryTrianglesWhoseDualEdgesAreBoundaries = find(sum(inTreeIndicator(data.trianglesToEdges(find(data.isBoundaryTriangle),:)),2)==2);
 assert(numel(boundaryTrianglesWhoseDualEdgesAreBoundaries)==0);
 
+% Number of edges adj to curve that arent the curve that end up in the
+% tree. Have not prevented any from entering explicitly after
+% initializiation. My guess is it's always 0 but through no particular
+% proof. also im not sure it really matters
+assert(numel(ARemoveB(intersect(edgesAdjToCurve,GrowingTree)',curveEdges'))==0);
 
 %% Simple Visualize remaining surface
 %{

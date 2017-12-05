@@ -1,15 +1,13 @@
-function T = PrimalVolumeVertexSpanningTree(edges)
-    startV = edges(1);
-    T = PrimalVolumeVertexSpanningTreeMoreOps(edges, [], [], startV); return;
-
-    %if(argin == 1)
-    %    exclude = [];
-    %end
-
-    verts = sort(unique(edges(:)));
-    visitedV = verts(1);
+function T = PrimalVolumeVertexSpanningTreeMoreOps(edges, exclude, include, startVert)
+    assert(numel(include)==0); % include isn't supported yet. 
+    edgesWithExclusion = edges; edgesWithExclusion(exclude,:)=[];
+    edgesWithExclusionInds = 1:size(edges,1); edgesWithExclusionInds(exclude)=[];
+    
+    
+    verts = sort(unique(edgesWithExclusion));
+    visitedV = startVert;
     completedV = [];
-    Adjacency = sparse(edges(:,1), edges(:,2), 1:size(edges,1));
+    Adjacency = sparse(edgesWithExclusion(:,1), edgesWithExclusion(:,2), 1:size(edgesWithExclusion,1));
     Adjacency(numel(verts),numel(verts))=0; 
     T = []; 
     
@@ -20,7 +18,9 @@ function T = PrimalVolumeVertexSpanningTree(edges)
         end
         
         if numel(visitedV) == 0
-            error('Graph is not connected!');
+            'Graph is not connected! Propagation finished'
+            T = full(edgesWithExclusionInds(T));
+            return;
         end
         v = visitedV(1);
         visitedV = visitedV(2:end);
@@ -44,5 +44,5 @@ function T = PrimalVolumeVertexSpanningTree(edges)
         visitedV = [visitedV neighboringV];
         T = [T candidateEdges];
     end
-    T = full(T);
+    T = full(edgesWithExclusionInds(T));
 end
