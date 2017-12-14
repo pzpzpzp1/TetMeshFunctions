@@ -1,7 +1,7 @@
 function EdgesRemaining = paul_dualSurfaceTest(accumCurveEdges)
 
     [X,T]=paul_loadTetGenMesh('./meshes/sphere_61k');
-    data = paul_getTetData(T,X);
+    data = paul_getTetData(T,X,0,1);
 
     %% create test singular primal curve
 
