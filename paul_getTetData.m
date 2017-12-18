@@ -91,8 +91,10 @@ function data = paul_getTetData(T,X,lite,force)
     end
     
     % get edgesToTets
+    tetsToEdgesIndicator = sparse(repmat((1:data.numTetrahedra)',6,1),data.tetsToEdges(:),ones(6*data.numTetrahedra,1));
+    data.tetsToEdgesIndicator = tetsToEdgesIndicator;
     if(~lite)
-        tetsToEdgesIndicator = sparse(repmat((1:data.numTetrahedra)',6,1),data.tetsToEdges(:),ones(6*data.numTetrahedra,1));
+        
         numberedTetsToEdgesIndicator = tetsToEdgesIndicator.*[1:size(tetsToEdgesIndicator,1)]';
         collapsednumberedTetsToEdgesIndicator = numberedTetsToEdgesIndicator(find(numberedTetsToEdgesIndicator~=0));
 
@@ -101,8 +103,10 @@ function data = paul_getTetData(T,X,lite,force)
     end
     
     % get edgesToTrianglesUnoriented
+    trianglesToEdgesIndicator = sparse(repmat((1:data.numTriangles)',3,1),data.trianglesToEdges(:),repmat((1:data.numTriangles)',3,1));
+    data.edgesToTrianglesIndicator = trianglesToEdgesIndicator';
     if(~lite)
-        trianglesToEdgesIndicator = sparse(repmat((1:data.numTriangles)',3,1),data.trianglesToEdges(:),repmat((1:data.numTriangles)',3,1));
+        
         collapsedTrianglesToEdgesIndicator = trianglesToEdgesIndicator(find(trianglesToEdgesIndicator~=0));
     
         edgesToTriangles = mat2cell(full(collapsedTrianglesToEdgesIndicator), full(sum(trianglesToEdgesIndicator~=0)));
@@ -310,7 +314,7 @@ function data = paul_getTetData(T,X,lite,force)
         %% compute nonboundaryTriToTets
         nonBoundaryTrianglesToTets = cell2mat(data.trianglesToTets(find(~data.isBoundaryTriangle)));
         nonBoundaryTrianglesToTets = reshape(nonBoundaryTrianglesToTets,2,numel(nonBoundaryTrianglesToTets)/2)';
-        data.nonBoundaryTrianglesToTets = nonBoundaryTrianglesToTets;
+        data.nonBoundaryTrianglesToTets =nonBoundaryTrianglesToTets ;
     end
     
     %% separate nonboundary and boundary edges
