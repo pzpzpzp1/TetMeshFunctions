@@ -1,6 +1,9 @@
-function f = VisualizeEdges(edgeInds, data, type, f)
-    if nargin == 3
+function f = VisualizeEdges(edgeInds, data, type, f, color)
+    if nargin == 3 || f == 0
         f = figure; hold on; axis equal;
+    end
+    if nargin == 4
+        color = [1 0 1];
     end
     figure(f);
 
@@ -20,7 +23,7 @@ function f = VisualizeEdges(edgeInds, data, type, f)
         for i = 1:numel(edgeInds)
             e = data.edges(edgeInds(i),:);
             vs = data.vertices(e',:);
-            plot3(vs(:,1),vs(:,2),vs(:,3),'Color',[1 0 1],'LineWidth',1.5);
+            plot3(vs(:,1),vs(:,2),vs(:,3),'Color',color,'LineWidth',1.5);
         end
     else
         error('type not supported');
