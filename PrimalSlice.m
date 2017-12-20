@@ -13,8 +13,8 @@ if(flow == 1)
 
     % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/rod_ours.vtk']);
     % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/fertility.vtk']);
-    % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/double_torus.vtk']);
-    HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/ellipsoid-B.vtk']);
+    HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/double_torus.vtk']);
+    %HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/ellipsoid-B.vtk']);
 
     TMesh = HexToTet(HMesh);
     X = TMesh.V2P;
@@ -37,15 +37,18 @@ if(flow == 1)
     end
     %}
 else
-    [X,T]=paul_loadTetGenMesh('./meshes/sphere_61k');
+    %[X,T]=paul_loadTetGenMesh('./meshes/sphere_61k');
     %[X,T]=paul_loadTetGenMesh('C:\Users\Administrator\Documents\jsolomon\octahedral_frames\meshes\sphere\spherer.1');
     %[X,T]=paul_loadTetGenMesh('C:\Users\Administrator\Documents\jsolomon\octahedral_frames\meshes\sphere\spherer.1');
+    [X,T]=paul_loadTetGenMesh('C:\Users\Administrator\Documents\jsolomon\octahedral_frames\meshes\anchor0\anchor_0.1');
     
     data = paul_getTetData(T,X,0);
     
-    accumCurveEdges={};
-    [curveEdges, curveV, f] = chooseCurve(data, 0, 0, []); accumCurveEdges{1} = curveEdges;
-    SEdges = [curveEdges];
+    SEdges = [-1];
+    
+    %accumCurveEdges={};
+    %[curveEdges, curveV, f] = chooseCurve(data, 0, 0, []); accumCurveEdges{1} = curveEdges;
+    %SEdges = [curveEdges];
     
     %[curveEdges2, curveV2, f] = chooseCurve(data, f, 'b', accumCurveEdges); accumCurveEdges{2} = curveEdges2;
     %SEdges = [curveEdges; curveEdges2];
@@ -97,14 +100,24 @@ while(numel(trianglesToClose)~=0)
     closedTrianglesPerEdge = e2tIndicator*inTreeIndicator;
     DualLoopsToClose = find((totalTrianglesPerEdge - closedTrianglesPerEdge)==1);
     DualLoopsToClose = ARemoveB(DualLoopsToClose', SEdges')';
-    
     trianglesToClose = find(sum(e2tIndicator(DualLoopsToClose, :),1)~=0);
     
+    triangsintree = sum(inTreeIndicator);
     inTreeIndicator(trianglesToClose) = 1;
+    
+    triangsaddedToTree = sum(inTreeIndicator)-triangsintree;
+    loopsVtriangs = numel(DualLoopsToClose)-triangsaddedToTree;
+    %1
+    if(loopsVtriangs~=0)
+        'fewer triangles added to tree than loops closed!! possible contradictions.'
+        %pause;
+    end
 end
 
 % plot singular edges
-f = VisualizeEdges(SEdges, data, '-', 0, [1 0 0]);
+if(SEdges~=-1)
+    f = VisualizeEdges(SEdges, data, '-', 0, [1 0 0]);
+else; f = figure; hold on; end;
 % boundary verts
 scatter3(data.vertices(find(data.isBoundaryVertex),1),data.vertices(find(data.isBoundaryVertex),2),data.vertices(find(data.isBoundaryVertex),3),1,'blue');
 % plot nonmanifold edges
