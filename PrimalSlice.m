@@ -1,6 +1,6 @@
 
-%% run from TetMeshFunctions
-flow = 0
+% start from hex mesh (with singularities) or start from tet mesh (no singularities)
+flow = 1
 if(flow == 1)
     path2HMeshFuncs='./../HexMeshSingularitySheetingTest';
     addpath(path2HMeshFuncs);
@@ -13,8 +13,8 @@ if(flow == 1)
 
     % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/rod_ours.vtk']);
     % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/fertility.vtk']);
-    HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/double_torus.vtk']);
-    %HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/ellipsoid-B.vtk']);
+    % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/double_torus.vtk']);
+    HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/ellipsoid-B.vtk']);
 
     TMesh = HexToTet(HMesh);
     X = TMesh.V2P;
@@ -22,20 +22,30 @@ if(flow == 1)
     data = paul_getTetData(T,X,0);
     
     %% load singular edges
-    % scatter3(data.vertices(find(TMesh.isSingularVertex),1),data.vertices(find(TMesh.isSingularVertex),2),data.vertices(find(TMesh.isSingularVertex),3),5,'red');
-    e1 = sum(data.edges(:,1)==find(TMesh.isSingularVertex),2)~=0;
-    e2 = sum(data.edges(:,2)==find(TMesh.isSingularVertex),2)~=0;
-    data.isSingularEdge = e1 & e2;
-    data.isSingularVertex = TMesh.isSingularVertex;
+%     % scatter3(data.vertices(find(TMesh.isSingularVertex),1),data.vertices(find(TMesh.isSingularVertex),2),data.vertices(find(TMesh.isSingularVertex),3),5,'red');
+%     e1 = sum(data.edges(:,1)==find(TMesh.isSingularVertex),2)~=0;
+%     e2 = sum(data.edges(:,2)==find(TMesh.isSingularVertex),2)~=0;
+%     data.isSingularEdge = e1 & e2;
+%     data.isSingularVertex = TMesh.isSingularVertex;
+%     SEdges = find(data.isSingularEdge);
+    
+    %% match TMesh.SE2V with data.edges.
+    ia = find(ismember(data.edges,TMesh.SE2V,'rows'));
+    data.isSingularEdge = sparse(ia,ones(size(ia)),ones(size(ia)),size(data.edges,1),1);
     SEdges = find(data.isSingularEdge);
     
-    %{
-    hold on;
-    for i = 1:size(SEdges)
-        pts = data.vertices(data.edges(SEdges(i),:),:);
-        plot3(pts(:,1),pts(:,2),pts(:,3))
-    end
-    %}
+%     hold on; axis equal;
+%     for se = 1:size(SEdges,1)
+%         v = data.vertices(data.edges(SEdges(se),:),:);
+%         plot3(v(:,1),v(:,2),v(:,3),'r')
+%     end
+%     
+%     hold on; axis equal;
+%     for se = 1:size(TMesh.SE2V,1)
+%         v = TMesh.V2P(TMesh.SE2V(se,:),:);
+%         plot3(v(:,1),v(:,2),v(:,3),'r')
+%     end
+    
 else
     %[X,T]=paul_loadTetGenMesh('./meshes/sphere_61k');
     %[X,T]=paul_loadTetGenMesh('C:\Users\Administrator\Documents\jsolomon\octahedral_frames\meshes\sphere\spherer.1');
@@ -109,7 +119,12 @@ while(numel(trianglesToClose)~=0)
     loopsVtriangs = numel(DualLoopsToClose)-triangsaddedToTree;
     %1
     if(loopsVtriangs~=0)
-        'fewer triangles added to tree than loops closed!! possible contradictions.'
+        % this is made to count how many dual loops where closed by adding
+        % triangles to the tree. Each dual loop represents constraints that
+        % had to be satisfied. So having more than 1 constrain on the value
+        % of one triangle means it's possible that no value of that
+        % triangle satisfies all constraints.
+        'fewer triangles added to tree than loops closed!! possible contradictions in the system?'
         %pause;
     end
 end
