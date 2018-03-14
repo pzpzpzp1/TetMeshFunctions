@@ -5,6 +5,8 @@ function data = paul_getTetData(T,X,lite,force)
         force = false;
     end
     
+    % lite means don't load all properties. force means don't set to lite
+    % even if size is far beyond recommended. will take a long time to run.
     if ((size(T,1) > 330000 || size(X,1) > 61000) && ~force)
         'SETTING TO LITE. TOO MANY VERTICES/TETS.'
         lite = 1;
