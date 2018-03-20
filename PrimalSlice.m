@@ -1,6 +1,14 @@
+Visualize = 0;
 
-% start from hex mesh (with singularities) or start from tet mesh (no singularities)
-flow = 1
+
+if(exist('cache/data.mat')==2)
+    'WARNING: cache contains data. will be overwritten.'
+    pause;
+end
+
+%1. start from hex mesh (with singularities) 
+%2. start from tet mesh (no singularities)
+flow = 1;
 if(flow == 1)
     path2HMeshFuncs='./../HexMeshSingularitySheetingTest';
     addpath(path2HMeshFuncs);
@@ -13,7 +21,7 @@ if(flow == 1)
 
     % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/rod_ours.vtk']);
     % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/fertility.vtk']);
-    % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/double_torus.vtk']);
+    %HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/double_torus.vtk']);
     HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/ellipsoid-B.vtk']);
 
     TMesh = HexToTet(HMesh);
@@ -30,8 +38,10 @@ if(flow == 1)
 %     SEdges = find(data.isSingularEdge);
     
     %% match TMesh.SE2V with data.edges.
+    flipped = data.edges(:,1)>data.edges(:,2); data.edges(flipped,:) = [data.edges(flipped,2) data.edges(flipped,1)];
     ia = find(ismember(data.edges,TMesh.SE2V,'rows'));
     data.isSingularEdge = sparse(ia,ones(size(ia)),ones(size(ia)),size(data.edges,1),1);
+    SEdgeValences = sparse(ia, ones(size(ia)), TMesh.singularValence, size(data.edges,1),1);
     SEdges = find(data.isSingularEdge);
     
 %     hold on; axis equal;
@@ -54,7 +64,7 @@ else
     
     data = paul_getTetData(T,X,0);
     
-    SEdges = [-1];
+    SEdges = [];
     
     %accumCurveEdges={};
     %[curveEdges, curveV, f] = chooseCurve(data, 0, 0, []); accumCurveEdges{1} = curveEdges;
@@ -129,32 +139,86 @@ while(numel(trianglesToClose)~=0)
     end
 end
 
-% plot singular edges
-if(SEdges~=-1)
-    f = VisualizeEdges(SEdges, data, '-', 0, [1 0 0]);
-else; f = figure; hold on; end;
-% boundary verts
-scatter3(data.vertices(find(data.isBoundaryVertex),1),data.vertices(find(data.isBoundaryVertex),2),data.vertices(find(data.isBoundaryVertex),3),1,'blue');
-% plot nonmanifold edges
-nonMEdges = find((totalTrianglesPerEdge - closedTrianglesPerEdge)>2);
-f = VisualizeEdges(nonMEdges, data, '-',f,[1 0 1]);
-% plot surface intersect with boundary
 surfaceTriInds = find(~inTreeIndicator);
 surfaceTriInds = ARemoveB(surfaceTriInds',find(data.isBoundaryTriangle)');
-surfaceEdges = data.trianglesToEdges(surfaceTriInds, :);
-surfaceEdges = intersect(surfaceEdges(:)', find(data.isBoundaryEdge)');
-f = VisualizeEdges(unique(surfaceEdges), data, '-',f,[0 0 1]);
 
-% plot primal slice surface
-hold on;
-%scatter3(data.vertices(find(data.isBoundaryVertex),1),data.vertices(find(data.isBoundaryVertex),2),data.vertices(find(data.isBoundaryVertex),3),5,'blue')
-surfaceTriInds = find(~inTreeIndicator);
-surfaceTriInds = ARemoveB(surfaceTriInds',find(data.isBoundaryTriangle)');
-for i = 1:numel(surfaceTriInds)
-    vinds = data.triangles(surfaceTriInds(i),:);
-    polyPtch = data.vertices(vinds, :);
-    ptc = patch(polyPtch(:,1), polyPtch(:,2), polyPtch(:,3),'green'); alpha(ptc, .8);
-    pause(.01)
+%% get H1 generators.
+%dualspantree = minspantree(g);
+%nonBTrisInd = find(~data.isBoundaryTriangle);
+%TriInds = nonBTrisInd(dualspantree.Edges.Weight);
+%inTreeIndicator = sparse(TriInds, ones(size(TriInds,1),1), ones(size(TriInds,1),1), data.numTriangles, 1);
+root = randi(data.numTetrahedra);
+surfaceToPuncture = surfaceTriInds;
+%f = VisualizeEdges(SEdges, data, '-', 0, [1 0 0]);
+H1Generators = {}; MetaSurfaceClosed{1} = []; StartingTri = {}; genpos = 1;
+while(numel(surfaceToPuncture)~=0)
+    tri = surfaceToPuncture(randi(numel(surfaceToPuncture)));
+    StartingTri{genpos}=tri;
+    tets = data.trianglesToTets{tri};
+    p1 = shortestpath(dualspantree,root,tets(1));
+    p2 = shortestpath(dualspantree,root,tets(2));
+    % loop of tets
+    p3 = [p1 fliplr(p2)];
+    H1Generators{genpos}=p3; 
+    %plot3(data.tetBarycenters(p3,1),data.tetBarycenters(p3,2),data.tetBarycenters(p3,3),'b');
+    %% update surfaceToPuncture
+    inTreeIndicator(tri)=1;
+    MetaSurfaceClosed{genpos} = [MetaSurfaceClosed{genpos} tri];
+    trianglesToClose = -1; 
+    while(numel(trianglesToClose)~=0)
+        closedTrianglesPerEdge = e2tIndicator*inTreeIndicator;
+        DualLoopsToClose = find((totalTrianglesPerEdge - closedTrianglesPerEdge)==1);
+        DualLoopsToClose = ARemoveB(DualLoopsToClose', SEdges')';
+        trianglesToClose = find(sum(e2tIndicator(DualLoopsToClose, :),1)~=0);
+        triangsintree = sum(inTreeIndicator);
+        newTrisAddedInds = find(~inTreeIndicator(trianglesToClose));
+        inTreeIndicator(trianglesToClose(newTrisAddedInds)) = 1;
+        MetaSurfaceClosed{genpos} = [MetaSurfaceClosed{genpos} trianglesToClose(newTrisAddedInds)];
+    end
+    MetaSurfaceClosed{genpos} = unique(MetaSurfaceClosed{genpos});
+    surfaceToPuncture = find(~inTreeIndicator);
+    surfaceToPuncture = ARemoveB(surfaceToPuncture',find(data.isBoundaryTriangle)');
+    genpos = genpos + 1; MetaSurfaceClosed{genpos} = [];
 end
+numel(H1Generators)
 
+
+
+MetaVertices = HMesh.MetaVertices;
+save('cache/SEdges.mat','SEdges');
+save('cache/data.mat','data');
+save('cache/surfaceTriInds.mat','surfaceTriInds');
+save('cache/MetaVertices.mat','MetaVertices');
+save('cache/SEdgeValences.mat','SEdgeValences');
+save('cache/H1Generators.mat','H1Generators');
+save('cache/MetaSurfaceClosed.mat','MetaSurfaceClosed');
+save('cache/StartingTri.mat','StartingTri');
+
+
+if(Visualize)
+    %% Visualize stuff
+    % plot singular edges
+    if(numel(SEdges)~=0)
+        f = VisualizeEdges(SEdges, data, '-', 0, [1 0 0]);
+    else; f = figure; hold on; end;
+    % boundary verts
+    scatter3(data.vertices(find(data.isBoundaryVertex),1),data.vertices(find(data.isBoundaryVertex),2),data.vertices(find(data.isBoundaryVertex),3),1,'blue');
+    % plot nonmanifold edges
+    nonMEdges = find((totalTrianglesPerEdge - closedTrianglesPerEdge)>2);
+    f = VisualizeEdges(nonMEdges, data, '-',f,[1 0 1]);
+    % plot surface intersect with boundary
+    surfaceEdges = data.trianglesToEdges(surfaceTriInds, :);
+    surfaceEdges = intersect(surfaceEdges(:)', find(data.isBoundaryEdge)');
+    f = VisualizeEdges(unique(surfaceEdges), data, '-',f,[0 0 1]);
+
+    % plot primal slice surface
+    hold on;
+    %scatter3(data.vertices(find(data.isBoundaryVertex),1),data.vertices(find(data.isBoundaryVertex),2),data.vertices(find(data.isBoundaryVertex),3),5,'blue')
+    for i = 1:numel(surfaceTriInds)
+        vinds = data.triangles(surfaceTriInds(i),:);
+        polyPtch = data.vertices(vinds, :);
+        ptc = patch(polyPtch(:,1), polyPtch(:,2), polyPtch(:,3),'green'); alpha(ptc, .8);
+        pause(.01)
+    end
+end
 
