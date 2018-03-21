@@ -1,5 +1,33 @@
 % returns the octahedral group in various representations
 function z = octahedralGroup(type)
+
+    if(isa(type,'double') && all(size(type)==[3,3]))
+        %input is matrix. find closest octahedral rotation, and type
+        %(I,C,E,F) ident corner edge face
+        O = octahedralGroup('rotationCells');
+        faces = O(2:10);
+        edges = O(11:16);
+        corners = O(17:24);
+        matching = zeros(24,1);
+        for i = 1:24
+            matching(i)=norm(O{i}-type);
+        end
+        [m,i] = min(matching);
+        z = i;
+        return;
+    elseif(isa(type,'double') && numel(type)==1)
+        if(type == 1) % ident
+            z=0;
+        elseif(ismember(type,[2:10])) % faces
+            z = 1;
+        elseif(ismember(type,[11:16])) % edges
+            z = 2;
+        elseif(ismember(type,[17:24])) % corners
+            z = 3;
+        end
+        return;
+    end
+
     if strcmp(type, 'symmetryPermutation')
         % front face of cube has corners labeled 1 2 3 4 ccw. opposite
         % corners are labeled the same.

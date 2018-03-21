@@ -1,4 +1,4 @@
-Visualize = false;
+Visualize = true;
 
 %function z = SpanningTreeApproach
 load('cache/SEdges.mat');
@@ -9,6 +9,7 @@ load('cache/SEdgeValences.mat');
 load('cache/H1Generators.mat');
 load('cache/MetaSurfaceClosed.mat');
 load('cache/StartingTri.mat');
+load('cache/H1DualEdgeGenerators.mat');
 
 Surf2Edges = data.trianglesToEdges(surfaceTriInds,:);
 E2Fcount = accumarray(Surf2Edges(:),1); 
@@ -23,9 +24,21 @@ MetaVertices = MetaVertices;
 allverts = data.edges(unique([SurfaceEdge; InteriorEdge; SingularEdges]),:);
 vcount = accumarray(allverts(:),1,[data.numVertices 1]);
 
-%% time to reduce the generator set. Some are redundant becuase of the shape of the msp.
-% how can there be more than 12 loops?
-% how are they related?
+%% time to reduce the generator set. Some are redundant because of the shape of the msp.
+% Q: how can there be more than 12 loops? 
+% A: imagine a surface contacts itself, creating an overlap triangle. If
+% the msp chooses to peirce that triangle, it creates a useless loop,
+% because that triangle has to have identity holonomy. Peircing its source
+% surface would have removed this extra triangle too, but in reverse that
+% doesn't happen. We get an extra generator, with identity holonomy.
+%% TODO: remove extra generators.
+
+%% NOTICE: given a dual loop, how do you express it in terms of generators?
+interiorSingularEdges = intersect(find(~data.isBoundaryEdge),SEdges);
+triloop = data.edgesToTrianglesUnoriented{interiorSingularEdges(1)};
+%gens = DualLoopToGenerators(data, triloop, H1DualEdgeGenerators, DualFacesToExclude);
+
+
 
 %% verify metavertices and corners
 if(Visualize)

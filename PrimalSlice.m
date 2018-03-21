@@ -150,6 +150,7 @@ surfaceTriInds = ARemoveB(surfaceTriInds',find(data.isBoundaryTriangle)');
 root = randi(data.numTetrahedra);
 surfaceToPuncture = surfaceTriInds;
 %f = VisualizeEdges(SEdges, data, '-', 0, [1 0 0]);
+H1DualEdgeGenerators = {};
 H1Generators = {}; MetaSurfaceClosed{1} = []; StartingTri = {}; genpos = 1;
 while(numel(surfaceToPuncture)~=0)
     tri = surfaceToPuncture(randi(numel(surfaceToPuncture)));
@@ -160,6 +161,14 @@ while(numel(surfaceToPuncture)~=0)
     % loop of tets
     p3 = [p1 fliplr(p2)];
     H1Generators{genpos}=p3; 
+    % loop of triangles
+    tetloop2triloopInds = repmat(2:numel(p3),2,1); tetloop2triloopInds = tetloop2triloopInds(:);
+    tetloop2triloopInds = [1 tetloop2triloopInds(1:end-1)'];
+    triloop2tets = reshape(p3(tetloop2triloopInds),2,[])'; 
+    flipinds = triloop2tets(:,1) < triloop2tets(:,2); triloop2tets(flipinds,:) = [triloop2tets(flipinds,2) triloop2tets(flipinds,1)];
+    flipinds = data.nonBoundaryTrianglesToTets(:,1) < data.nonBoundaryTrianglesToTets(:,2); data.nonBoundaryTrianglesToTets(flipinds,:) = [data.nonBoundaryTrianglesToTets(flipinds,2) data.nonBoundaryTrianglesToTets(flipinds,1)];
+    [isit, matchind] = ismember(triloop2tets, data.nonBoundaryTrianglesToTets,'rows');
+    H1DualEdgeGenerators{genpos}=matchind;
     %plot3(data.tetBarycenters(p3,1),data.tetBarycenters(p3,2),data.tetBarycenters(p3,3),'b');
     %% update surfaceToPuncture
     inTreeIndicator(tri)=1;
@@ -193,6 +202,7 @@ save('cache/SEdgeValences.mat','SEdgeValences');
 save('cache/H1Generators.mat','H1Generators');
 save('cache/MetaSurfaceClosed.mat','MetaSurfaceClosed');
 save('cache/StartingTri.mat','StartingTri');
+save('cache/H1DualEdgeGenerators.mat','H1DualEdgeGenerators');
 
 
 if(Visualize)
