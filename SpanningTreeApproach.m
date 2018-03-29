@@ -33,10 +33,16 @@ vcount = accumarray(allverts(:),1,[data.numVertices 1]);
 % doesn't happen. We get an extra generator, with identity holonomy.
 %% TODO: remove extra generators.
 
-%% NOTICE: given a dual loop, how do you express it in terms of generators?
+% NOTICE: given a dual loop, how do you express it in terms of generators?
+% also notice, not necessary for algorithm to work. can use symbolic
+% propagation
 interiorSingularEdges = intersect(find(~data.isBoundaryEdge),SEdges);
 triloop = data.edgesToTrianglesUnoriented{interiorSingularEdges(1)};
 %gens = DualLoopToGenerators(data, triloop, H1DualEdgeGenerators, DualFacesToExclude);
+
+%% list corner constraints in terms of symbolic values 
+
+%% do something ??? about the boundary
 
 
 
@@ -115,6 +121,7 @@ if(Visualize)
     end
 end
 
+%%
 
 
 

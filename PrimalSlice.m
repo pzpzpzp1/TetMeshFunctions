@@ -191,6 +191,16 @@ while(numel(surfaceToPuncture)~=0)
 end
 numel(H1Generators)
 
+%% propagate and store symbolic propagation in relation to generators.
+
+
+
+%% prune generators if they are not real d.o.f.
+
+%% construct corners and sectors.
+
+
+
 
 
 MetaVertices = HMesh.MetaVertices;
