@@ -23,6 +23,9 @@ if(flow == 1)
     % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/fertility.vtk']);
     %HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/double_torus.vtk']);
     HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/ellipsoid-B.vtk']);
+    
+    %% simple meshes
+    HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/HTri2Hex/mesh01.vtk']);
 
     TMesh = HexToTet(HMesh);
     X = TMesh.V2P;
