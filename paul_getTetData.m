@@ -145,6 +145,7 @@ function data = paul_getTetData(T,X,lite,force)
     nextTet1 = sparse(mtx(1:2:end,1),mtx(1:2:end,2),mtx(1:2:end,3),data.numTetrahedra,data.numEdges);
     nextTet2 = sparse(mtx(2:2:end,1),mtx(2:2:end,2),mtx(2:2:end,3),data.numTetrahedra,data.numEdges);
 
+    % tets cycles
     edgeCycles = cell(data.numEdges,1);
     ne = data.numEdges;
     isBoundaryEdge = data.isBoundaryEdge;
@@ -318,6 +319,55 @@ function data = paul_getTetData(T,X,lite,force)
         nonBoundaryTrianglesToTets = cell2mat(data.trianglesToTets(find(~data.isBoundaryTriangle)));
         nonBoundaryTrianglesToTets = reshape(nonBoundaryTrianglesToTets,2,numel(nonBoundaryTrianglesToTets)/2)';
         data.nonBoundaryTrianglesToTets =nonBoundaryTrianglesToTets ;
+        
+        for i = 1:numel(data.edgeCycles)
+            isbe = data.isBoundaryEdge(i);
+            tetCycle = data.edgeCycles{i};
+            neighboringTris = data.edgesToTrianglesUnoriented{i};
+            ntris = numel(tetCycle)+1;
+            tets2tris = data.tetsToTriangles(tetCycle,:);
+            
+            if(isbe)
+                if(numel(tetCycle)==1)
+                    % trying to carry orientation from tets. 1 tet alone
+                    % has no orientation. gonna be lazy and hope users
+                    % subdivide.
+                    error('trouble! cannot have tet with 2 boundary faces!');
+                end
+                
+                startTris = intersect(tets2tris(1,:),neighboringTris);
+                startTri = startTris(find(data.isBoundaryTriangle(startTris)));
+                triCycle = startTri;
+                
+                for j = 2:size(tets2tris,1)
+                    tris = intersect(tets2tris(j,:),neighboringTris);
+                    nextTri = ARemoveB(tris, triCycle(j-1));
+                    triCycle = [triCycle nextTri];
+                end
+            else
+                startTris = intersect(tets2tris(1,:),neighboringTris);
+                nextTri = intersect(tets2tris(1,:),tets2tris(2,:));
+                triCycle = [ARemoveB(startTris,nextTri) nextTri];
+                for j = 2:(size(tets2tris,1)-1)
+                    tris = intersect(tets2tris(j,:),neighboringTris);
+                    nextTri = ARemoveB(tris, triCycle(j));
+                    triCycle = [triCycle nextTri];
+                end
+            end
+            data.edgeTriCycles{i}=triCycle;
+        end
+        
+        % verify edge TriCycles
+        for i = 1:numel(data.edgeTriCycles)
+            triCycle = data.edgeTriCycles{i};
+            vs = data.vertices(data.edges(i,:),:); plot3(vs(:,1),vs(:,2),vs(:,3),'r'); hold on; axis equal;
+            triloop = data.triangleBarycenters(triCycle,:);
+            triverts = data.vertices(data.triangles(triCycle,:),:);
+            scatter3(triverts(:,1),triverts(:,2),triverts(:,3));
+            plot3(triloop(:,1),triloop(:,2),triloop(:,3),'b');
+            hold off;
+        end
+        
     end
     
     %% separate nonboundary and boundary edges

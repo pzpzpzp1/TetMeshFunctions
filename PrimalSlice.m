@@ -30,7 +30,7 @@ if(flow == 1)
     TMesh = HexToTet(HMesh);
     X = TMesh.V2P;
     T = TMesh.T2V;
-    data = paul_getTetData(T,X,0);
+    [X2,T2,data] = preprocess_data(X,T);
     
     %% load singular edges
 %     % scatter3(data.vertices(find(TMesh.isSingularVertex),1),data.vertices(find(TMesh.isSingularVertex),2),data.vertices(find(TMesh.isSingularVertex),3),5,'red');
@@ -155,6 +155,7 @@ surfaceToPuncture = surfaceTriInds;
 %f = VisualizeEdges(SEdges, data, '-', 0, [1 0 0]);
 H1DualEdgeGenerators = {};
 H1Generators = {}; MetaSurfaceClosed{1} = []; StartingTri = {}; genpos = 1;
+triangleToTransition = cell(data.numTriangles,1);
 while(numel(surfaceToPuncture)~=0)
     tri = surfaceToPuncture(randi(numel(surfaceToPuncture)));
     StartingTri{genpos}=tri;
@@ -186,6 +187,18 @@ while(numel(surfaceToPuncture)~=0)
         newTrisAddedInds = find(~inTreeIndicator(trianglesToClose));
         inTreeIndicator(trianglesToClose(newTrisAddedInds)) = 1;
         MetaSurfaceClosed{genpos} = [MetaSurfaceClosed{genpos} trianglesToClose(newTrisAddedInds)];
+        
+        % indexes into data.triangles
+%         trisAdded = trianglesToClose(newTrisAddedInds);
+%         for tris = trisAdded(:)'
+%             edges = data.trianglesToEdges(tris,:);
+%             for edge = edges(:)'
+%                 data.edges
+%             end
+%         end
+%         
+%         triangleToTransition{}
+        
     end
     MetaSurfaceClosed{genpos} = unique(MetaSurfaceClosed{genpos});
     surfaceToPuncture = find(~inTreeIndicator);
