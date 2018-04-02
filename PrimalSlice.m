@@ -25,7 +25,7 @@ if(flow == 1)
     HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/ellipsoid-B.vtk']);
     
     %% simple meshes
-    HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/HTri2Hex/mesh01.vtk']);
+    HMesh = LoadVTK(1, [path2HMeshFuncs '/meshes/HTri2Hex/mesh01.vtk']);
 
     TMesh = HexToTet(HMesh);
     X = TMesh.V2P;
@@ -142,6 +142,11 @@ while(numel(trianglesToClose)~=0)
     end
 end
 
+triangleToTransition = cell(data.numTriangles,1);
+triangleHasTransition = zeros(data.numTriangles,1);
+triangleToTransition(find(inTreeIndicator))={[]};
+triangleHasTransition(find(inTreeIndicator))=1;
+
 surfaceTriInds = find(~inTreeIndicator);
 surfaceTriInds = ARemoveB(surfaceTriInds',find(data.isBoundaryTriangle)');
 
@@ -155,10 +160,12 @@ surfaceToPuncture = surfaceTriInds;
 %f = VisualizeEdges(SEdges, data, '-', 0, [1 0 0]);
 H1DualEdgeGenerators = {};
 H1Generators = {}; MetaSurfaceClosed{1} = []; StartingTri = {}; genpos = 1;
-triangleToTransition = cell(data.numTriangles,1);
 while(numel(surfaceToPuncture)~=0)
     tri = surfaceToPuncture(randi(numel(surfaceToPuncture)));
     StartingTri{genpos}=tri;
+    triangleHasTransition(tri)=1;
+    triangleToTransition{tri}=genpos;
+    
     tets = data.trianglesToTets{tri};
     p1 = shortestpath(dualspantree,root,tets(1));
     p2 = shortestpath(dualspantree,root,tets(2));
@@ -189,16 +196,38 @@ while(numel(surfaceToPuncture)~=0)
         MetaSurfaceClosed{genpos} = [MetaSurfaceClosed{genpos} trianglesToClose(newTrisAddedInds)];
         
         % indexes into data.triangles
-%         trisAdded = trianglesToClose(newTrisAddedInds);
-%         for tris = trisAdded(:)'
-%             edges = data.trianglesToEdges(tris,:);
-%             for edge = edges(:)'
-%                 data.edges
-%             end
-%         end
-%         
-%         triangleToTransition{}
-        
+        trisAdded = trianglesToClose(newTrisAddedInds);
+        for tris = trisAdded(:)'
+            edges = data.trianglesToEdges(tris,:);
+            for edge = edges(:)'
+                if(data.isBoundaryEdge(edge))
+                    continue; 
+                end
+                triCycle = data.edgeTriCycles{edge}(1:end-1);
+                if(sum(~triangleHasTransition(triCycle))==1)
+                    % only one triangle is left unknown.
+                    missingTriInd = find(~triangleHasTransition(triCycle));
+                    missingTri = triCycle(missingTriInd);
+                    triCycle = circshift(triCycle, numel(triCycle) - missingTriInd);
+                    
+                    accumTransitions = [];
+                    for accumTris = triCycle(1:end-1)
+                        % get transitions of a triangle.
+                        transition = triangleToTransition{accumTris};
+                        
+                        side1 = min(find(data.edgeCycles{edge}==data.trianglesToTets{accumTris}(1)));
+                        forward = data.edgeCycles{edge}(side1+1)==data.trianglesToTets{accumTris}(2);
+                        
+                        if(forward)
+                            accumTransitions = [accumTransitions transition];
+                        else
+                            accumTransitions = [accumTransitions fliplr(-1*transition)];
+                        end
+                    end
+                    triangleToTransition{triCycle(end)} = -fliplr(accumTransitions);
+                end
+            end
+        end
     end
     MetaSurfaceClosed{genpos} = unique(MetaSurfaceClosed{genpos});
     surfaceToPuncture = find(~inTreeIndicator);
@@ -206,12 +235,14 @@ while(numel(surfaceToPuncture)~=0)
     genpos = genpos + 1; MetaSurfaceClosed{genpos} = [];
 end
 numel(H1Generators)
-
-%% propagate and store symbolic propagation in relation to generators.
-
-
+assert(all(triangleHasTransition));
 
 %% prune generators if they are not real d.o.f.
+for i = 1:numel(MetaSurfaceClosed)
+    tris = MetaSurfaceClosed{i};
+    triangleHasTransition{tris}
+end
+
 
 %% construct corners and sectors.
 
@@ -229,7 +260,7 @@ save('cache/H1Generators.mat','H1Generators');
 save('cache/MetaSurfaceClosed.mat','MetaSurfaceClosed');
 save('cache/StartingTri.mat','StartingTri');
 save('cache/H1DualEdgeGenerators.mat','H1DualEdgeGenerators');
-
+save('cache/triangleToTransition.mat','triangleToTransition');
 
 if(Visualize)
     %% Visualize stuff

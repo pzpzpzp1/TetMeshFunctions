@@ -337,11 +337,11 @@ function data = paul_getTetData(T,X,lite,force)
                 
                 startTris = intersect(tets2tris(1,:),neighboringTris);
                 startTri = startTris(find(data.isBoundaryTriangle(startTris)));
-                triCycle = startTri;
+                triCycle = [startTri ARemoveB(startTris,startTri)];
                 
                 for j = 2:size(tets2tris,1)
                     tris = intersect(tets2tris(j,:),neighboringTris);
-                    nextTri = ARemoveB(tris, triCycle(j-1));
+                    nextTri = ARemoveB(tris, triCycle(j));
                     triCycle = [triCycle nextTri];
                 end
             else
@@ -358,15 +358,19 @@ function data = paul_getTetData(T,X,lite,force)
         end
         
         % verify edge TriCycles
-        for i = 1:numel(data.edgeTriCycles)
-            triCycle = data.edgeTriCycles{i};
-            vs = data.vertices(data.edges(i,:),:); plot3(vs(:,1),vs(:,2),vs(:,3),'r'); hold on; axis equal;
-            triloop = data.triangleBarycenters(triCycle,:);
-            triverts = data.vertices(data.triangles(triCycle,:),:);
-            scatter3(triverts(:,1),triverts(:,2),triverts(:,3));
-            plot3(triloop(:,1),triloop(:,2),triloop(:,3),'b');
-            hold off;
-        end
+%         for i = 1:numel(data.edgeTriCycles)
+%             triCycle = data.edgeTriCycles{i};
+%             vs = data.vertices(data.edges(i,:),:); 
+%             %plot3(vs(:,1),vs(:,2),vs(:,3),'r'); 
+%             hold on; axis equal;
+%             triloop = data.triangleBarycenters(triCycle,:);
+%             %plot3(triloop(:,1),triloop(:,2),triloop(:,3),'r');
+%             triloop = .2*triloop + .9*sum(vs)/2;
+%             triverts = data.vertices(data.triangles(triCycle,:),:);
+%             scatter3(triverts(:,1),triverts(:,2),triverts(:,3));
+%             plot3(triloop(:,1),triloop(:,2),triloop(:,3),'b');
+%             %hold off;
+%         end
         
     end
     

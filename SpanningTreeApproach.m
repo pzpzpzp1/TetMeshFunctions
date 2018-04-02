@@ -10,6 +10,7 @@ load('cache/H1Generators.mat');
 load('cache/MetaSurfaceClosed.mat');
 load('cache/StartingTri.mat');
 load('cache/H1DualEdgeGenerators.mat');
+load('cache/triangleToTransition.mat');
 
 Surf2Edges = data.trianglesToEdges(surfaceTriInds,:);
 E2Fcount = accumarray(Surf2Edges(:),1); 
