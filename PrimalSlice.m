@@ -1,82 +1,98 @@
+
+close all; 
+clear;
+addpath('transitionManipulation');
+
 Visualize = 0;
-
-
 if(exist('cache/data.mat')==2)
-    'WARNING: cache contains data. will be overwritten.'
-    pause;
-end
-
-%1. start from hex mesh (with singularities) 
-%2. start from tet mesh (no singularities)
-flow = 1;
-if(flow == 1)
-    path2HMeshFuncs='./../HexMeshSingularitySheetingTest';
-    addpath(path2HMeshFuncs);
-
-    % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/bunny_ours.vtk']);
-    % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/bunny.vtk']);
-    % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/rocker_arm.vtk']);
-    % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/polycut2013/fertility.vtk']);
-    % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/sculpture-B_ours.vtk']);
-
-    % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/rod_ours.vtk']);
-    % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/fertility.vtk']);
-    %HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/double_torus.vtk']);
-    HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/ellipsoid-B.vtk']);
-    
-    %% simple meshes
-    HMesh = LoadVTK(1, [path2HMeshFuncs '/meshes/HTri2Hex/mesh01.vtk']);
-
-    TMesh = HexToTet(HMesh);
-    X = TMesh.V2P;
-    T = TMesh.T2V;
-    [X2,T2,data] = preprocess_data(X,T);
-    
-    %% load singular edges
-%     % scatter3(data.vertices(find(TMesh.isSingularVertex),1),data.vertices(find(TMesh.isSingularVertex),2),data.vertices(find(TMesh.isSingularVertex),3),5,'red');
-%     e1 = sum(data.edges(:,1)==find(TMesh.isSingularVertex),2)~=0;
-%     e2 = sum(data.edges(:,2)==find(TMesh.isSingularVertex),2)~=0;
-%     data.isSingularEdge = e1 & e2;
-%     data.isSingularVertex = TMesh.isSingularVertex;
-%     SEdges = find(data.isSingularEdge);
-    
-    %% match TMesh.SE2V with data.edges.
-    flipped = data.edges(:,1)>data.edges(:,2); data.edges(flipped,:) = [data.edges(flipped,2) data.edges(flipped,1)];
-    ia = find(ismember(data.edges,TMesh.SE2V,'rows'));
-    data.isSingularEdge = sparse(ia,ones(size(ia)),ones(size(ia)),size(data.edges,1),1);
-    SEdgeValences = sparse(ia, ones(size(ia)), TMesh.singularValence, size(data.edges,1),1);
-    SEdges = find(data.isSingularEdge);
-    
-%     hold on; axis equal;
-%     for se = 1:size(SEdges,1)
-%         v = data.vertices(data.edges(SEdges(se),:),:);
-%         plot3(v(:,1),v(:,2),v(:,3),'r')
-%     end
-%     
-%     hold on; axis equal;
-%     for se = 1:size(TMesh.SE2V,1)
-%         v = TMesh.V2P(TMesh.SE2V(se,:),:);
-%         plot3(v(:,1),v(:,2),v(:,3),'r')
-%     end
-    
+    load('cache/data.mat');
+    load('cache/SEdges.mat');
+    load('cache/SEdgeValences.mat');
+    load('cache/MetaVertices.mat');
+    HMesh.MetaVertices = MetaVertices;
 else
-    %[X,T]=paul_loadTetGenMesh('./meshes/sphere_61k');
-    %[X,T]=paul_loadTetGenMesh('C:\Users\Administrator\Documents\jsolomon\octahedral_frames\meshes\sphere\spherer.1');
-    %[X,T]=paul_loadTetGenMesh('C:\Users\Administrator\Documents\jsolomon\octahedral_frames\meshes\sphere\spherer.1');
-    [X,T]=paul_loadTetGenMesh('C:\Users\Administrator\Documents\jsolomon\octahedral_frames\meshes\anchor0\anchor_0.1');
+
+    %1. start from hex mesh (with singularities) 
+    %2. start from tet mesh (no singularities)
+    flow = 1;
+    if(flow == 1)
+        path2HMeshFuncs='./../HexMeshSingularitySheetingTest';
+        addpath(path2HMeshFuncs);
+
+        % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/bunny_ours.vtk']);
+        % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/bunny.vtk']);
+        % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/rocker_arm.vtk']);
+        % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/polycut2013/fertility.vtk']);
+        % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/sculpture-B_ours.vtk']);
+
+        % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/rod_ours.vtk']);
+        % HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/fertility.vtk']);
+        %HMesh = LoadVTK(0, [path2HMeshFuncs '/meshes/FF/double_torus.vtk']);
+        HMesh = LoadVTK(1, [path2HMeshFuncs '/meshes/FF/ellipsoid-B.vtk']); rotate3d on
+        
+        %% simple meshes
+        %HMesh = LoadVTK(1, [path2HMeshFuncs '/meshes/HTri2Hex/mesh01.vtk']);
+
+        MetaVertices = HMesh.MetaVertices;
+        TMesh = HexToTet(HMesh);
+        X = TMesh.V2P;
+        T = TMesh.T2V;
+        [X2,T2,data] = preprocess_data(X,T);
+
+        %% load singular edges
+    %     % scatter3(data.vertices(find(TMesh.isSingularVertex),1),data.vertices(find(TMesh.isSingularVertex),2),data.vertices(find(TMesh.isSingularVertex),3),5,'red');
+    %     e1 = sum(data.edges(:,1)==find(TMesh.isSingularVertex),2)~=0;
+    %     e2 = sum(data.edges(:,2)==find(TMesh.isSingularVertex),2)~=0;
+    %     data.isSingularEdge = e1 & e2;
+    %     data.isSingularVertex = TMesh.isSingularVertex;
+    %     SEdges = find(data.isSingularEdge);
+
+        %% match TMesh.SE2V with data.edges.
+        flipped = data.edges(:,1)>data.edges(:,2); data.edges(flipped,:) = [data.edges(flipped,2) data.edges(flipped,1)];
+        ia = find(ismember(data.edges,TMesh.SE2V,'rows'));
+        data.isSingularEdge = sparse(ia,ones(size(ia)),ones(size(ia)),size(data.edges,1),1);
+        SEdgeValences = sparse(ia, ones(size(ia)), TMesh.singularValence, size(data.edges,1),1);
+        SEdges = find(data.isSingularEdge);
+        
+    %     hold on; axis equal;
+    %     for se = 1:size(SEdges,1)
+    %         v = data.vertices(data.edges(SEdges(se),:),:);
+    %         plot3(v(:,1),v(:,2),v(:,3),'r')
+    %     end
+    %     
+    %     hold on; axis equal;
+    %     for se = 1:size(TMesh.SE2V,1)
+    %         v = TMesh.V2P(TMesh.SE2V(se,:),:);
+    %         plot3(v(:,1),v(:,2),v(:,3),'r')
+    %     end
+
+    else
+        %[X,T]=paul_loadTetGenMesh('./meshes/sphere_61k');
+        %[X,T]=paul_loadTetGenMesh('C:\Users\Administrator\Documents\jsolomon\octahedral_frames\meshes\sphere\spherer.1');
+        %[X,T]=paul_loadTetGenMesh('C:\Users\Administrator\Documents\jsolomon\octahedral_frames\meshes\sphere\spherer.1');
+        [X,T]=paul_loadTetGenMesh('C:\Users\Administrator\Documents\jsolomon\octahedral_frames\meshes\anchor0\anchor_0.1');
+
+        data = paul_getTetData(T,X,0);
+
+        SEdges = [];
+        SEdgeValences = sparse(size(data.edges,1),1);
+        MetaVertices = [];
+        %accumCurveEdges={};
+        %[curveEdges, curveV, f] = chooseCurve(data, 0, 0, []); accumCurveEdges{1} = curveEdges;
+        %SEdges = [curveEdges];
+
+        %[curveEdges2, curveV2, f] = chooseCurve(data, f, 'b', accumCurveEdges); accumCurveEdges{2} = curveEdges2;
+        %SEdges = [curveEdges; curveEdges2];
+    end
     
-    data = paul_getTetData(T,X,0);
+    save('cache/SEdges.mat','SEdges');
+    save('cache/data.mat','data');
+    save('cache/SEdgeValences.mat','SEdgeValences');
+    save('cache/MetaVertices.mat','MetaVertices');
     
-    SEdges = [];
-    
-    %accumCurveEdges={};
-    %[curveEdges, curveV, f] = chooseCurve(data, 0, 0, []); accumCurveEdges{1} = curveEdges;
-    %SEdges = [curveEdges];
-    
-    %[curveEdges2, curveV2, f] = chooseCurve(data, f, 'b', accumCurveEdges); accumCurveEdges{2} = curveEdges2;
-    %SEdges = [curveEdges; curveEdges2];
 end
 
+figure; rotate3d on;
 m = data.nonBoundaryTrianglesToTets;
 g = graph(m(:,1),m(:,2),(1:size(data.nonBoundaryTrianglesToTets,1))');
 %g.Edges.Weights =  randi(100,size(data.nonBoundaryTrianglesToTets,1),1);
@@ -162,6 +178,8 @@ H1DualEdgeGenerators = {};
 H1Generators = {}; MetaSurfaceClosed{1} = []; StartingTri = {}; genpos = 1;
 while(numel(surfaceToPuncture)~=0)
     tri = surfaceToPuncture(randi(numel(surfaceToPuncture)));
+%     polyPtch = data.vertices(data.triangles(tri,:), :); ptc = patch(polyPtch(:,1), polyPtch(:,2), polyPtch(:,3),'green'); alpha(ptc, .8);
+        
     StartingTri{genpos}=tri;
     triangleHasTransition(tri)=1;
     triangleToTransition{tri}=genpos;
@@ -185,7 +203,12 @@ while(numel(surfaceToPuncture)~=0)
     inTreeIndicator(tri)=1;
     MetaSurfaceClosed{genpos} = [MetaSurfaceClosed{genpos} tri];
     trianglesToClose = -1; 
+    trisAdded = -1;
+    todel = {}; todelpos = 1;
+    
     while(numel(trianglesToClose)~=0)
+%         for tdel = 1:numel(todel); delete(todel{tdel}); end; todel = {}; todelpos = 1; if(trisAdded ~= -1) for t=trisAdded;             polyPtch = data.vertices(data.triangles(t,:), :); ptc = patch(polyPtch(:,1), polyPtch(:,2), polyPtch(:,3),'black'); alpha(ptc, .3);        end; end;
+        
         closedTrianglesPerEdge = e2tIndicator*inTreeIndicator;
         DualLoopsToClose = find((totalTrianglesPerEdge - closedTrianglesPerEdge)==1);
         DualLoopsToClose = ARemoveB(DualLoopsToClose', SEdges')';
@@ -198,9 +221,11 @@ while(numel(surfaceToPuncture)~=0)
         % indexes into data.triangles
         trisAdded = trianglesToClose(newTrisAddedInds);
         for tris = trisAdded(:)'
+%             polyPtch = data.vertices(data.triangles(tris,:), :); ptc = patch(polyPtch(:,1), polyPtch(:,2), polyPtch(:,3),'red'); alpha(ptc, .3); todel{todelpos}=ptc; todelpos = todelpos+1;
+            
             edges = data.trianglesToEdges(tris,:);
             for edge = edges(:)'
-                if(data.isBoundaryEdge(edge))
+                if(data.isBoundaryEdge(edge) || data.isSingularEdge(edge))
                     continue; 
                 end
                 triCycle = data.edgeTriCycles{edge}(1:end-1);
@@ -224,7 +249,24 @@ while(numel(surfaceToPuncture)~=0)
                             accumTransitions = [accumTransitions fliplr(-1*transition)];
                         end
                     end
-                    triangleToTransition{triCycle(end)} = -fliplr(accumTransitions);
+                    
+                    % orient solution into transition store.
+                    side1 = min(find(data.edgeCycles{edge}==data.trianglesToTets{triCycle(end)}(1)));
+                    forward = data.edgeCycles{edge}(side1+1)==data.trianglesToTets{triCycle(end)}(2);
+                    if(~forward); accumTransitions = -fliplr(accumTransitions); end;
+                    
+                    triangleToTransition{triCycle(end)} = cancelAntiPairs(-fliplr(accumTransitions));
+                    triangleHasTransition(triCycle(end))=1;
+                    
+                    transitions = triangleToTransition{triCycle(end)};
+%                     if(~(numel(transitions)==1 || ~any(transitions == circshift(transitions,1))))
+%                         'paused!'
+%                         pause;
+%                          alpha(ptc, .9);
+%                         vs = data.vertices(data.edges(edge,:),:); hold on; plot3(vs(:,1),vs(:,2),vs(:,3),'g','LineWidth',2)
+%                     end
+                    
+                    break;
                 end
             end
         end
@@ -234,13 +276,46 @@ while(numel(surfaceToPuncture)~=0)
     surfaceToPuncture = ARemoveB(surfaceToPuncture',find(data.isBoundaryTriangle)');
     genpos = genpos + 1; MetaSurfaceClosed{genpos} = [];
 end
-numel(H1Generators)
-assert(all(triangleHasTransition));
+MetaSurfaceClosed=MetaSurfaceClosed(1:end-1);
+fprintf(['Num Generators ' num2str(numel(H1Generators)) '\n']);
 
 %% prune generators if they are not real d.o.f.
+longstr = '';
 for i = 1:numel(MetaSurfaceClosed)
     tris = MetaSurfaceClosed{i};
-    triangleHasTransition{tris}
+    longstr = [longstr '[' num2str(triangleToTransition{tris(1)})];
+    for t = tris(2:end)
+        longstr = [longstr ' ; ' num2str(triangleToTransition{t})];
+    end
+    longstr = [longstr '] \n'];
+end
+fprintf(['Showing transitions \n' longstr '\n']);
+
+% simplify transitions and sanity checks
+assert(all(triangleHasTransition(find(~data.isBoundaryTriangle))));
+for i = 1:numel(MetaSurfaceClosed)
+    tris = MetaSurfaceClosed{i};
+    for tind = 1:numel(tris)
+        t = tris(tind);
+        transitions = triangleToTransition{t};
+        
+        % find consecutive flipped values and remove
+        transitions = cancelAntiPairs(transitions);
+        triangleToTransition{t} = transitions;
+    end
+end
+
+% prune generators based on regular holonomy.
+nonMEdges = find((totalTrianglesPerEdge - closedTrianglesPerEdge)>2);
+regularNMEdges = ARemoveB(nonMEdges, SEdges);
+generatorsToRemove = [];
+for eiter = 1:numel(regularNMEdges)
+    edgeind = regularNMEdges(eiter);
+    transitions = transitionsPerEdge(edgeind,data,triangleToTransition);
+    transitions = cancelAntiPairs(transitions);
+    if(numel(transitions)==1)
+        generatorsToRemove = unique([generatorsToRemove transitions]);
+    end
 end
 
 
@@ -250,7 +325,6 @@ end
 
 
 
-MetaVertices = HMesh.MetaVertices;
 save('cache/SEdges.mat','SEdges');
 save('cache/data.mat','data');
 save('cache/surfaceTriInds.mat','surfaceTriInds');

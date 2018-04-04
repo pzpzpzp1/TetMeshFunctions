@@ -59,7 +59,14 @@ if(Visualize)
             if(StartingTri{h} == MetaSurfaceClosed{h}(i)); continue; end;
             vinds = data.triangles(MetaSurfaceClosed{h}(i),:);
             polyPtch = data.vertices(vinds, :);
-            ptc = patch(polyPtch(:,1), polyPtch(:,2), polyPtch(:,3),'green'); alpha(ptc, .6);
+            
+            if(numel(triangleToTransition{MetaSurfaceClosed{h}})==0)
+                color = 'black'
+            else
+                color = 'green'
+            end
+            
+            ptc = patch(polyPtch(:,1), polyPtch(:,2), polyPtch(:,3),color); alpha(ptc, .6);
             %pause(.01)
         end
         
