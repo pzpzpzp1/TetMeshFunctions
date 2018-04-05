@@ -1,3 +1,6 @@
+clear;
+close all;
+
 Visualize = true;
 
 %function z = SpanningTreeApproach
@@ -60,7 +63,7 @@ if(Visualize)
             vinds = data.triangles(MetaSurfaceClosed{h}(i),:);
             polyPtch = data.vertices(vinds, :);
             
-            if(numel(triangleToTransition{MetaSurfaceClosed{h}})==0)
+            if(numel(triangleToTransition{MetaSurfaceClosed{h}(i)})==0)
                 color = 'black'
             else
                 color = 'green'

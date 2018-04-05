@@ -166,6 +166,8 @@ triangleHasTransition(find(inTreeIndicator))=1;
 surfaceTriInds = find(~inTreeIndicator);
 surfaceTriInds = ARemoveB(surfaceTriInds',find(data.isBoundaryTriangle)');
 
+nonMEdges = find((totalTrianglesPerEdge - closedTrianglesPerEdge)>2);
+
 %% get H1 generators.
 %dualspantree = minspantree(g);
 %nonBTrisInd = find(~data.isBoundaryTriangle);
@@ -255,10 +257,11 @@ while(numel(surfaceToPuncture)~=0)
                     forward = data.edgeCycles{edge}(side1+1)==data.trianglesToTets{triCycle(end)}(2);
                     if(~forward); accumTransitions = -fliplr(accumTransitions); end;
                     
-                    triangleToTransition{triCycle(end)} = cancelAntiPairs(-fliplr(accumTransitions));
+                    triangleToTransition{triCycle(end)} = -fliplr(accumTransitions);
                     triangleHasTransition(triCycle(end))=1;
                     
-                    transitions = triangleToTransition{triCycle(end)};
+                    assert(numel(cancelAntiPairs(transitionsPerEdge(edge,data,triangleToTransition)))==0)
+                    
 %                     if(~(numel(transitions)==1 || ~any(transitions == circshift(transitions,1))))
 %                         'paused!'
 %                         pause;
@@ -292,9 +295,11 @@ end
 fprintf(['Showing transitions \n' longstr '\n']);
 
 % simplify transitions and sanity checks
+pruneTriangles = {};
 assert(all(triangleHasTransition(find(~data.isBoundaryTriangle))));
 for i = 1:numel(MetaSurfaceClosed)
     tris = MetaSurfaceClosed{i};
+    pruneTriangles{i} = [];
     for tind = 1:numel(tris)
         t = tris(tind);
         transitions = triangleToTransition{t};
@@ -302,28 +307,103 @@ for i = 1:numel(MetaSurfaceClosed)
         % find consecutive flipped values and remove
         transitions = cancelAntiPairs(transitions);
         triangleToTransition{t} = transitions;
+        
+        if(numel(transitions)==0)
+            pruneTriangles{i} = [pruneTriangles{i} tind];
+        end
     end
 end
 
-% prune generators based on regular holonomy.
-nonMEdges = find((totalTrianglesPerEdge - closedTrianglesPerEdge)>2);
-regularNMEdges = ARemoveB(nonMEdges, SEdges);
+for i = 1:numel(MetaSurfaceClosed)
+    MetaSurfaceClosed{i}(pruneTriangles{i})=[];
+end
+
+isTrivialTriangle = zeros(data.numTriangles,1);
+for i = 1:numel(triangleHasTransition)
+    trans = triangleToTransition{i};
+    isTrivialTriangle(i) = numel(trans)==0;
+end
+
+
+%% TODO:  prune generators based on regular holonomy?? currently fails. lots of false positives.
+regularNMEdges = ARemoveB(ARemoveB(nonMEdges, SEdges),find(data.isBoundaryEdge));
 generatorsToRemove = [];
 for eiter = 1:numel(regularNMEdges)
     edgeind = regularNMEdges(eiter);
     transitions = transitionsPerEdge(edgeind,data,triangleToTransition);
     transitions = cancelAntiPairs(transitions);
-    if(numel(transitions)==1)
+    if(numel(transitions)~=0)
         generatorsToRemove = unique([generatorsToRemove transitions]);
     end
 end
 
 
-%% construct corners and sectors.
+%% construct corners and sectors and loops.
+for i=1:numel(MetaVertices)
+    mvert = MetaVertices{i};
+    vind = mvert.vind;
+    assert(~data.isBoundaryVertex(vind)); % CASE NOT HANDLED YET.
+    adjEdges = find(sum(data.edges==vind,2)~=0);
+    [found, seinds] = FindEdgeIndexOfVertPairs(mvert.adjE2V, data.edges);
+    assert(all(found));
+    adjFaces = find(sum(data.triangles==vind,2)~=0);
+    adjTets = find(sum(data.tetrahedra==vind,2)~=0);
+    cageEdges = unique(ARemoveB(data.tetsToEdges(adjTets,:),adjEdges));
+    cageVerts = unique(ARemoveB(data.tetrahedra(adjTets,:),vind));
+    tet2tet = reshape(cell2mat(data.trianglesToTets(adjFaces)),2,[])';
+    dAdj = sparse(tet2tet(:,1),tet2tet(:,2),ones(size(tet2tet,1),1),data.numTetrahedra,data.numTetrahedra); dAdj = dAdj + dAdj'; dAdj = dAdj ~= 0;
+    dGraph = graph(dAdj);
+    
+    PathsIndex = sparse(data.vertices, data.vertices); % Index to path of tet2tet.
+    Paths = {}; pathpos = 1;
+    for c = 1:numel(mvert.corners)
+        corner = mvert.corners{c};
+        corner.threeEdges2V
+        % TODO:
+        P = shortestpath(G,s,t)
+    end
+    
+    
+    figure; axis equal; hold on; rotate3d on; title('Singular Vertex Neighborhood');
+    scatter3(data.vertices(mvert.vind,1),data.vertices(mvert.vind,2),data.vertices(mvert.vind,3),2);
+    scatter3(data.vertices(cageVerts,1),data.vertices(cageVerts,2),data.vertices(cageVerts,3),80,'filled','r');
+    for tet = adjTets'
+        for eind = data.tetsToEdges(tet,:);
+            vs = data.vertices(data.edges(eind,:),:);
+            plot3(vs(:,1),vs(:,2),vs(:,3),'k');
+        end
+    end
+    for eind = cageEdges;
+        vs = data.vertices(data.edges(eind,:),:);
+        plot3(vs(:,1),vs(:,2),vs(:,3),'k','LineWidth',2);
+    end
+    for seind = seinds'
+        vs = data.vertices(data.edges(seind,:),:);
+        plot3(vs(:,1),vs(:,2),vs(:,3),'r','LineWidth',2);
+    end
+    for face = intersect(adjFaces,find(~isTrivialTriangle))'
+        polyPtch = data.vertices(data.triangles(face,:), :);
+        ptc = patch(polyPtch(:,1), polyPtch(:,2), polyPtch(:,3),'green'); alpha(ptc, .2);
+    end
+    for c = 1:numel(mvert.corners)
+        corner = mvert.corners{c};
+        adddir = (sum(data.vertices(corner.threeEdges2V(:,2),:)-data.vertices(corner.threeEdges2V(:,1),:))/3)*.1;
+        for j=1:3
+            vs = data.vertices(corner.threeEdges2V(j,:),:);
+            vs = vs + [adddir;adddir];
 
+            if(corner.threeEdgesDeg(j)==3)
+                plot3(vs(:,1),vs(:,2),vs(:,3),'b','LineWidth',2);
+            else
+                plot3(vs(:,1),vs(:,2),vs(:,3),'g','LineWidth',2);
+            end
+        end
+    end
+    
+    
+    
 
-
-
+end
 
 save('cache/SEdges.mat','SEdges');
 save('cache/data.mat','data');
@@ -345,7 +425,7 @@ if(Visualize)
     % boundary verts
     scatter3(data.vertices(find(data.isBoundaryVertex),1),data.vertices(find(data.isBoundaryVertex),2),data.vertices(find(data.isBoundaryVertex),3),1,'blue');
     % plot nonmanifold edges
-    nonMEdges = find((totalTrianglesPerEdge - closedTrianglesPerEdge)>2);
+    % not needed anymore. moved up. nonMEdges = find((totalTrianglesPerEdge - closedTrianglesPerEdge)>2);
     f = VisualizeEdges(nonMEdges, data, '-',f,[1 0 1]);
     % plot surface intersect with boundary
     surfaceEdges = data.trianglesToEdges(surfaceTriInds, :);
