@@ -1,4 +1,6 @@
 
+% subdivide boundary tets with more than 2 boundary triangles
+% permute tets so boundary tets are at the end
 function [X2,T3,data3,tetPermutation] = preprocess_data(X,T)
 
     data = paul_getTetData(T,X,1,1);
@@ -32,7 +34,9 @@ function [X2,T3,data3,tetPermutation] = preprocess_data(X,T)
     T3 = [T2(~data2.isBoundaryTet,:); T2(data2.isBoundaryTet,:)];
     tetPermutation = [find(~data2.isBoundaryTet); find(data2.isBoundaryTet)];
     
-    data3 = paul_getTetData(T3,X2,0,1);
+    if(nargout > 2)
+        data3 = paul_getTetData(T3,X2,0,1);
+    end
     
     %{
         hold on;

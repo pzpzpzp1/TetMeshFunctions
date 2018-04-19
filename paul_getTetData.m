@@ -3,6 +3,8 @@ function data = paul_getTetData(T,X,lite,force)
     if(nargin == 2)
         lite = true;
         force = false;
+    elseif(nargin == 3)
+        force = false;
     end
     
     % lite means don't load all properties. force means don't set to lite

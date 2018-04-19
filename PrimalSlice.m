@@ -4,6 +4,8 @@ clear;
 addpath('transitionManipulation');
 
 Visualize = 0;
+VisualizeMV = 1;
+subdivideX = 5;
 if(exist('cache/data.mat')==2)
     load('cache/data.mat');
     load('cache/SEdges.mat');
@@ -37,7 +39,36 @@ else
         TMesh = HexToTet(HMesh);
         X = TMesh.V2P;
         T = TMesh.T2V;
-        [X2,T2,data] = preprocess_data(X,T);
+        [X2, T2] = preprocess_data(X, T);
+        %% subdivide neighborhood of singular vertices to make resolution good enough for corner paths.
+        for i = 1:numel(MetaVertices)
+            ['subdividing ' num2str(MetaVertices{i}.vind)]
+            for j = 1:subdivideX;
+                mvert = MetaVertices{i};
+                [X2, T2, BrokenSingularEdges] = SubdivideTMeshAtVertex(X2, T2, mvert.vind, 0);
+                
+                % update singular structures.
+                adjSE2V = find(sum(TMesh.SE2V == MetaVertices{i}.vind,2));
+                [found, ind] = FindEdgeIndexOfVertPairs(BrokenSingularEdges(:,[1 3]), TMesh.SE2V(adjSE2V,:)); assert(sum(found)==size(adjSE2V,1));
+                BrokenSingularEdges = BrokenSingularEdges(found,:);
+                ind = ind(found);
+                
+                [found, ind] = FindEdgeIndexOfVertPairs(BrokenSingularEdges(:,[1 3]), TMesh.SE2V); assert(all(found));
+                TMesh.singularValence = [TMesh.singularValence; TMesh.singularValence(ind); TMesh.singularValence(ind)];
+                TMesh.singularValence(ind)=[];
+                TMesh.SE2V = [TMesh.SE2V; BrokenSingularEdges(:,[1 2]); BrokenSingularEdges(:,[2 3])];
+                TMesh.SE2V(ind,:)=[];
+                
+                for c = 1:numel(mvert.corners)
+                    [found, ind] = FindEdgeIndexOfVertPairs(mvert.corners{c}.threeEdges2V, BrokenSingularEdges(:,[1 3]));
+                    assert(all(found));
+                    mvert.corners{c}.threeEdges2V = BrokenSingularEdges(ind,[1 2]);
+                end
+                MetaVertices{i} = mvert;
+            end
+        end
+        [X2,T2,data] = preprocess_data(X2,T2);
+        
 
         %% load singular edges
     %     % scatter3(data.vertices(find(TMesh.isSingularVertex),1),data.vertices(find(TMesh.isSingularVertex),2),data.vertices(find(TMesh.isSingularVertex),3),5,'red');
@@ -49,7 +80,7 @@ else
 
         %% match TMesh.SE2V with data.edges.
         flipped = data.edges(:,1)>data.edges(:,2); data.edges(flipped,:) = [data.edges(flipped,2) data.edges(flipped,1)];
-        ia = find(ismember(data.edges,TMesh.SE2V,'rows'));
+        [~, ia] = FindEdgeIndexOfVertPairs(TMesh.SE2V, data.edges);
         data.isSingularEdge = sparse(ia,ones(size(ia)),ones(size(ia)),size(data.edges,1),1);
         SEdgeValences = sparse(ia, ones(size(ia)), TMesh.singularValence, size(data.edges,1),1);
         SEdges = find(data.isSingularEdge);
@@ -92,10 +123,123 @@ else
     
 end
 
-%% todo: subdivide neighborhood of singular vertices to make resolution good enough for corner paths.
+%% construct corners and sectors and loops.
+% strategy: Dual graph is dual to a sphere triangulation. all dual loops 
+% in neighborhood of a singular edge should
+% excluded from being able to be used. After a path is found, that path
+% should be removed from the dual graph.
+for i=1:numel(MetaVertices)
+    mvert = MetaVertices{i};
+    vind = mvert.vind;
+    
+    % initialize dgraph adjacency
+    adjEdges = find(sum(data.edges==vind,2)~=0);
+    sindst = find(sum(data.edges(SEdges,:)==vind,2)); adjSE2V = data.edges(SEdges(sindst),:);
+    [found, seinds] = FindEdgeIndexOfVertPairs(adjSE2V, data.edges);
+    assert(all(found));
+    adjFaces = find(sum(data.triangles==vind,2)~=0);
+    adjTets = find(sum(data.tetrahedra==vind,2)~=0);
+    intAdjFaces = adjFaces(~data.isBoundaryTriangle(adjFaces));
+    cageEdges = unique(ARemoveB(data.tetsToEdges(adjTets,:),adjEdges));
+    cageVerts = unique(ARemoveB(data.tetrahedra(adjTets,:),vind));
+    tet2tet = reshape(cell2mat(data.trianglesToTets(intAdjFaces)),2,[])';
+    dAdj = sparse(tet2tet(:,1),tet2tet(:,2),ones(size(tet2tet,1),1),data.numTetrahedra+data.numEdges,data.numTetrahedra+data.numEdges); dAdj = dAdj + dAdj'; dAdj = dAdj ~= 0;
+    
+    
+    %zero out neighborhood paths of adj singular edges
+    %add connections to edge indicator.
+    for seind = seinds'
+        tets2Remove = data.edgesToTets{seind};
+        dAdj(tets2Remove, tets2Remove)=0;
+        % weight these as very expensive so paths try to avoid it.
+        dAdj(data.numTetrahedra+seind,tets2Remove)=100000;
+        dAdj(tets2Remove,data.numTetrahedra+seind)=100000;
+    end
+    
+    PathsIndex = sparse(data.numEdges, data.numEdges); % Index to path of tet2tet.
+    Paths = {}; pathpos = 1;
+    for c = 1:numel(mvert.corners)
+        corner = mvert.corners{c};
+        
+        [found, cornerEdgeInds] = FindEdgeIndexOfVertPairs(corner.threeEdges2V, data.edges);
+        shiftedInds = circshift(cornerEdgeInds,1);
+        for cei = 1:3
+            estart = cornerEdgeInds(cei);
+            eend = shiftedInds(cei);
+            
+            if(PathsIndex(estart,eend)~=0)
+                continue;
+            end
+            
+            dGraph = graph(dAdj);
+            P = shortestpath(dGraph,data.numTetrahedra+estart,data.numTetrahedra+eend);
+            
+            if(numel(P)==0)
+                'Path is empty. Tet resolution in this neighborhood isnt good enough!!'
+                assert(false);
+            end
+            
+            % make sure previous path can't be used again.
+            dAdj(P(2:end-1),:)=0; dAdj(:,P(2:end-1))=0;
+            PathsIndex(estart,eend) = pathpos; Paths{pathpos} = P; PathsIndex(eend,estart) = pathpos; pathpos = pathpos + 1;
+        end
+    end
 
+    if(VisualizeMV)
+        % Visualize local singular vertex.
+        figure; axis equal; hold on; rotate3d on; title('Singular Vertex Neighborhood');
+        scatter3(data.vertices(mvert.vind,1),data.vertices(mvert.vind,2),data.vertices(mvert.vind,3),50,'filled','k');
+        scatter3(data.vertices(cageVerts,1),data.vertices(cageVerts,2),data.vertices(cageVerts,3),30,'filled','r');
+%         for tet = adjTets'
+%             for eind = data.tetsToEdges(tet,:);
+%                 vs = data.vertices(data.edges(eind,:),:);
+%                 plot3(vs(:,1),vs(:,2),vs(:,3),'k');
+%             end
+%         end
+        for eind = cageEdges;
+            vs = data.vertices(data.edges(eind,:),:);
+            plot3(vs(:,1),vs(:,2),vs(:,3),'k','LineWidth',1);
+        end
+        for seind = seinds'
+            vs = data.vertices(data.edges(seind,:),:);
+            plot3(vs(:,1),vs(:,2),vs(:,3),'r','LineWidth',2);
+        end
+%         for face = intersect(adjFaces,find(~isTrivialTriangle))'
+%             polyPtch = data.vertices(data.triangles(face,:), :);
+%             ptc = patch(polyPtch(:,1), polyPtch(:,2), polyPtch(:,3),'green'); alpha(ptc, .2);
+%         end
+        for c = 1:numel(mvert.corners)
+            corner = mvert.corners{c};
+            adddir = (sum(data.vertices(corner.threeEdges2V(:,2),:)-data.vertices(corner.threeEdges2V(:,1),:))/3)*.1;
+            for j=1:3
+                vs = data.vertices(corner.threeEdges2V(j,:),:);
+                vs = vs + [adddir;adddir];
+
+                if(corner.threeEdgesDeg(j)==3)
+                    plot3(vs(:,1),vs(:,2),vs(:,3),'b','LineWidth',2);
+                else
+                    plot3(vs(:,1),vs(:,2),vs(:,3),'g','LineWidth',2);
+                end
+            end
+        end
+        
+        for i = 1:numel(Paths)
+            p = Paths{i};
+            ptets = p(2:end-1);
+            pedges = p([1 end]);
+            
+            ptet2tet = [ptets;circshift(ptets,1)]; ptet2tet = ptet2tet(:,1:end-1)';
+            for ppart = 1:size(ptet2tet,1)
+                tbc = data.tetBarycenters(ptet2tet(ppart,:),:);
+                plot3(tbc(:,1),tbc(:,2),tbc(:,3),'r'); hold on;
+            end
+            
+        end
+    end
+end
 
 figure; rotate3d on;
+%% Spanning tree
 m = data.nonBoundaryTrianglesToTets;
 g = graph(m(:,1),m(:,2),(1:size(data.nonBoundaryTrianglesToTets,1))');
 %g.Edges.Weights =  randi(100,size(data.nonBoundaryTrianglesToTets,1),1);
@@ -341,104 +485,7 @@ for eiter = 1:numel(regularNMEdges)
 end
 
 
-%% construct corners and sectors and loops.
-% strategy: Dual graph is dual to a sphere triangulation. all dual loops 
-% in neighborhood of a singular edge should
-% excluded from being able to be used. After a path is found, that path
-% should be removed from the dual graph.
-for i=1:numel(MetaVertices)
-    mvert = MetaVertices{i};
-    vind = mvert.vind;
-    
-    % initialize dgraph adjacency
-    adjEdges = find(sum(data.edges==vind,2)~=0);
-    [found, seinds] = FindEdgeIndexOfVertPairs(mvert.adjE2V, data.edges);
-    assert(all(found));
-    adjFaces = find(sum(data.triangles==vind,2)~=0);
-    adjTets = find(sum(data.tetrahedra==vind,2)~=0);
-    intAdjFaces = adjFaces(~data.isBoundaryTriangle(adjFaces));
-    cageEdges = unique(ARemoveB(data.tetsToEdges(adjTets,:),adjEdges));
-    cageVerts = unique(ARemoveB(data.tetrahedra(adjTets,:),vind));
-    tet2tet = reshape(cell2mat(data.trianglesToTets(intAdjFaces)),2,[])';
-    dAdj = sparse(tet2tet(:,1),tet2tet(:,2),ones(size(tet2tet,1),1),data.numTetrahedra+data.numEdges,data.numTetrahedra+data.numEdges); dAdj = dAdj + dAdj'; dAdj = dAdj ~= 0;
-    
-    %zero out neighborhood paths of adj singular edges
-    %add connections to edge indicator.
-    for seind = seinds'
-        tets2Remove = data.edgesToTets{seind};
-        dAdj(tets2Remove, tets2Remove)=0;
-        % weight these as very expensive so paths try to avoid it.
-        dAdj(data.numTetrahedra+seind,tets2Remove)=100000;
-        dAdj(tets2Remove,data.numTetrahedra+seind)=100000;
-    end
-    
-    PathsIndex = sparse(data.numEdges, data.numEdges); % Index to path of tet2tet.
-    Paths = {}; pathpos = 1;
-    for c = 1:numel(mvert.corners)
-        corner = mvert.corners{c};
-        
-        [found, cornerEdgeInds] = FindEdgeIndexOfVertPairs(corner.threeEdges2V, data.edges);
-        shiftedInds = circshift(cornerEdgeInds,1);
-        for cei = 1:3
-            estart = cornerEdgeInds(cei);
-            eend = shiftedInds(cei);
-            
-            if(PathsIndex(estart,eend)~=0)
-                continue;
-            end
-            
-            dGraph = graph(dAdj);
-            P = shortestpath(dGraph,data.numTetrahedra+estart,data.numTetrahedra+eend);
-            
-            if(numel(P)==0)
-                'Path is empty. Tet resolution in this neighborhood isnt good enough!!'
-                assert(false);
-            end
-            
-            % make sure previous path can't be used again.
-            dAdj(P(2:end-1),:)=0; dAdj(:,P(2:end-1))=0;
-            PathsIndex(estart,eend) = pathpos; Paths{pathpos} = P; PathsIndex(eend,estart) = pathpos; pathpos = pathpos + 1;
-        end
-    end
-    
-    
-%     figure; axis equal; hold on; rotate3d on; title('Singular Vertex Neighborhood');
-%     scatter3(data.vertices(mvert.vind,1),data.vertices(mvert.vind,2),data.vertices(mvert.vind,3),2);
-%     scatter3(data.vertices(cageVerts,1),data.vertices(cageVerts,2),data.vertices(cageVerts,3),80,'filled','r');
-%     for tet = adjTets'
-%         for eind = data.tetsToEdges(tet,:);
-%             vs = data.vertices(data.edges(eind,:),:);
-%             plot3(vs(:,1),vs(:,2),vs(:,3),'k');
-%         end
-%     end
-%     for eind = cageEdges;
-%         vs = data.vertices(data.edges(eind,:),:);
-%         plot3(vs(:,1),vs(:,2),vs(:,3),'k','LineWidth',2);
-%     end
-%     for seind = seinds'
-%         vs = data.vertices(data.edges(seind,:),:);
-%         plot3(vs(:,1),vs(:,2),vs(:,3),'r','LineWidth',2);
-%     end
-%     for face = intersect(adjFaces,find(~isTrivialTriangle))'
-%         polyPtch = data.vertices(data.triangles(face,:), :);
-%         ptc = patch(polyPtch(:,1), polyPtch(:,2), polyPtch(:,3),'green'); alpha(ptc, .2);
-%     end
-%     for c = 1:numel(mvert.corners)
-%         corner = mvert.corners{c};
-%         adddir = (sum(data.vertices(corner.threeEdges2V(:,2),:)-data.vertices(corner.threeEdges2V(:,1),:))/3)*.1;
-%         for j=1:3
-%             vs = data.vertices(corner.threeEdges2V(j,:),:);
-%             vs = vs + [adddir;adddir];
-% 
-%             if(corner.threeEdgesDeg(j)==3)
-%                 plot3(vs(:,1),vs(:,2),vs(:,3),'b','LineWidth',2);
-%             else
-%                 plot3(vs(:,1),vs(:,2),vs(:,3),'g','LineWidth',2);
-%             end
-%         end
-%     end
 
-end
 
 save('cache/SEdges.mat','SEdges');
 save('cache/data.mat','data');
