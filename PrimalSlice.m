@@ -5,7 +5,7 @@ addpath('transitionManipulation');
 
 Visualize = 0;
 VisualizeMV = 1;
-subdivideX = 5;
+subdivideX = 2;
 if(exist('cache/data.mat')==2)
     load('cache/data.mat');
     load('cache/SEdges.mat');
@@ -43,6 +43,8 @@ else
         %% subdivide neighborhood of singular vertices to make resolution good enough for corner paths.
         for i = 1:numel(MetaVertices)
             ['subdividing ' num2str(MetaVertices{i}.vind)]
+            
+            [X2, T2] = SubdivideTMeshAtTets(X2, T2, find(sum(T2==MetaVertices{i}.vind,2)));
             for j = 1:subdivideX;
                 mvert = MetaVertices{i};
                 [X2, T2, BrokenSingularEdges] = SubdivideTMeshAtVertex(X2, T2, mvert.vind, 0);
@@ -189,7 +191,7 @@ for i=1:numel(MetaVertices)
         % Visualize local singular vertex.
         figure; axis equal; hold on; rotate3d on; title('Singular Vertex Neighborhood');
         scatter3(data.vertices(mvert.vind,1),data.vertices(mvert.vind,2),data.vertices(mvert.vind,3),50,'filled','k');
-        scatter3(data.vertices(cageVerts,1),data.vertices(cageVerts,2),data.vertices(cageVerts,3),30,'filled','r');
+        scatter3(data.vertices(cageVerts,1),data.vertices(cageVerts,2),data.vertices(cageVerts,3),10,'filled','r');
 %         for tet = adjTets'
 %             for eind = data.tetsToEdges(tet,:);
 %                 vs = data.vertices(data.edges(eind,:),:);
@@ -198,11 +200,11 @@ for i=1:numel(MetaVertices)
 %         end
         for eind = cageEdges;
             vs = data.vertices(data.edges(eind,:),:);
-            plot3(vs(:,1),vs(:,2),vs(:,3),'k','LineWidth',1);
+            plot3(vs(:,1),vs(:,2),vs(:,3),'k','LineWidth',.1);
         end
         for seind = seinds'
             vs = data.vertices(data.edges(seind,:),:);
-            plot3(vs(:,1),vs(:,2),vs(:,3),'r','LineWidth',2);
+            plot3(vs(:,1),vs(:,2),vs(:,3),'b','LineWidth',2);
         end
 %         for face = intersect(adjFaces,find(~isTrivialTriangle))'
 %             polyPtch = data.vertices(data.triangles(face,:), :);
@@ -226,14 +228,12 @@ for i=1:numel(MetaVertices)
         for i = 1:numel(Paths)
             p = Paths{i};
             ptets = p(2:end-1);
-            pedges = p([1 end]);
             
-            ptet2tet = [ptets;circshift(ptets,1)]; ptet2tet = ptet2tet(:,1:end-1)';
+            ptet2tet = [ptets;circshift(ptets,-1)]; ptet2tet = ptet2tet(:,1:end-1)';
             for ppart = 1:size(ptet2tet,1)
                 tbc = data.tetBarycenters(ptet2tet(ppart,:),:);
-                plot3(tbc(:,1),tbc(:,2),tbc(:,3),'r'); hold on;
+                plot3(tbc(:,1),tbc(:,2),tbc(:,3),'r','LineWidth',2); hold on;
             end
-            
         end
     end
 end
