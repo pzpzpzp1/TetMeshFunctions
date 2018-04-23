@@ -93,6 +93,16 @@ function data = paul_getTetData(T,X,lite,force)
         collapsedAdj = numberedAdj(find(numberedAdj~=0));
         trianglesToTets = mat2cell(full(collapsedAdj), full(sum(adj)));
         data.trianglesToTets = trianglesToTets;
+        
+        %% compute nonboundaryTriToTets
+        nonBoundaryTrianglesToTets = cell2mat(data.trianglesToTets(find(~data.isBoundaryTriangle)));
+        nonBoundaryTrianglesToTets = reshape(nonBoundaryTrianglesToTets,2,numel(nonBoundaryTrianglesToTets)/2)';
+        data.nonBoundaryTrianglesToTets =nonBoundaryTrianglesToTets ;
+        
+        dualGraphAdj = sparse(nonBoundaryTrianglesToTets(:,1),nonBoundaryTrianglesToTets(:,2),ones(size(nonBoundaryTrianglesToTets(:,1),1),1),data.numTetrahedra,data.numTetrahedra);
+        dualGraphAdj = dualGraphAdj + dualGraphAdj' ~= 0;
+        data.dualGraphAdjacency = dualGraphAdj;
+        data.dualGraph = graph(data.dualGraphAdjacency);
     end
     
     % get edgesToTets
@@ -152,6 +162,32 @@ function data = paul_getTetData(T,X,lite,force)
     ne = data.numEdges;
     isBoundaryEdge = data.isBoundaryEdge;
     if(~lite)
+%         tic
+%         for i=1:data.numEdges
+%             if mod(i,1000) == 1
+%                 fprintf('Edge %d of %d...\n',i,ne);
+%             end
+% 
+%             if isBoundaryEdge(i)
+%                continue
+%             end
+% 
+%             rtri = data.edgesToTrianglesUnoriented{i}(1);
+%             adjTets = data.edgesToTets{i};
+%             tets = data.trianglesToTets{rtri};
+%             [~,ind] = ismember(tets,adjTets);
+%             subG = subgraph(data.dualGraph, adjTets);
+% %             subA = data.dualGraphAdjacency(adjTets,adjTets);
+% %             subG = graph(subA); subG = subG.rmedge(ind(1),ind(2));
+%             subG = subG.rmedge(ind(1),ind(2));
+%             cycle = shortestpath(subG,ind(1),ind(2));
+%             cycle = adjTets(cycle);
+%             
+%             assert(length(cycle) > 2);
+%             edgeCycles{i} = cycle;
+%         end
+%         toc
+%         tic
         for i=1:data.numEdges
             if mod(i,1000) == 1
                 fprintf('Edge %d of %d...\n',i,ne);
@@ -173,6 +209,8 @@ function data = paul_getTetData(T,X,lite,force)
             assert(length(cycle) > 2);
             edgeCycles{i} = cycle;
         end
+%         toc
+        
 
         for i=1:data.numEdges
             if mod(i,1000) == 1
@@ -317,10 +355,7 @@ function data = paul_getTetData(T,X,lite,force)
             assert(sum(orient1 == orient2)==3 | sum(orient1 == orient2)==0);
         end
     
-        %% compute nonboundaryTriToTets
-        nonBoundaryTrianglesToTets = cell2mat(data.trianglesToTets(find(~data.isBoundaryTriangle)));
-        nonBoundaryTrianglesToTets = reshape(nonBoundaryTrianglesToTets,2,numel(nonBoundaryTrianglesToTets)/2)';
-        data.nonBoundaryTrianglesToTets =nonBoundaryTrianglesToTets ;
+        
         
         for i = 1:numel(data.edgeCycles)
             isbe = data.isBoundaryEdge(i);
