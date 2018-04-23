@@ -4,8 +4,8 @@ clear;
 addpath('transitionManipulation');
 
 Visualize = 0;
-VisualizeMV = 1;
-subdivideX = 2;
+VisualizeMV = 0;
+subdivideX = 1;
 if(exist('cache/data.mat')==2)
     load('cache/data.mat');
     load('cache/SEdges.mat');
@@ -181,6 +181,18 @@ for i=1:numel(MetaVertices)
                 assert(false);
             end
             
+            if(all(~data.isBoundaryEdge([estart, eend])))
+                % add neighborhood info to P. to close loops.
+                tns = data.edgeCycles{estart};
+                tne = data.edgeCycles{eend};
+                
+                assert(any(P(2) == tns));
+                assert(any(P(end-1) == tne));
+                %% todo: construct full loops!
+                find(P(2) == tns
+                
+            end
+            
             % make sure previous path can't be used again.
             dAdj(P(2:end-1),:)=0; dAdj(:,P(2:end-1))=0;
             PathsIndex(estart,eend) = pathpos; Paths{pathpos} = P; PathsIndex(eend,estart) = pathpos; pathpos = pathpos + 1;
@@ -294,15 +306,15 @@ while(numel(trianglesToClose)~=0)
     triangsaddedToTree = sum(inTreeIndicator)-triangsintree;
     loopsVtriangs = numel(DualLoopsToClose)-triangsaddedToTree;
     %1
-    if(loopsVtriangs~=0)
-        % this is made to count how many dual loops where closed by adding
-        % triangles to the tree. Each dual loop represents constraints that
-        % had to be satisfied. So having more than 1 constrain on the value
-        % of one triangle means it's possible that no value of that
-        % triangle satisfies all constraints.
-        'fewer triangles added to tree than loops closed!! possible contradictions in the system?'
-        %pause;
-    end
+%     if(loopsVtriangs~=0)
+%         % this is made to count how many dual loops where closed by adding
+%         % triangles to the tree. Each dual loop represents constraints that
+%         % had to be satisfied. So having more than 1 constrain on the value
+%         % of one triangle means it's possible that no value of that
+%         % triangle satisfies all constraints.
+%         'fewer triangles added to tree than loops closed!! possible contradictions in the system?'
+%         %pause;
+%     end
 end
 
 triangleToTransition = cell(data.numTriangles,1);
@@ -484,9 +496,6 @@ for eiter = 1:numel(regularNMEdges)
     end
 end
 
-
-
-
 save('cache/SEdges.mat','SEdges');
 save('cache/data.mat','data');
 save('cache/surfaceTriInds.mat','surfaceTriInds');
@@ -497,6 +506,10 @@ save('cache/MetaSurfaceClosed.mat','MetaSurfaceClosed');
 save('cache/StartingTri.mat','StartingTri');
 save('cache/H1DualEdgeGenerators.mat','H1DualEdgeGenerators');
 save('cache/triangleToTransition.mat','triangleToTransition');
+save('cache/PathsIndex.mat','PathsIndex');
+save('cache/Paths.mat','Paths');
+
+
 
 if(Visualize)
     %% Visualize stuff
