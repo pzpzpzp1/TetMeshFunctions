@@ -81,7 +81,6 @@ else
     %     SEdges = find(data.isSingularEdge);
 
         %% match TMesh.SE2V with data.edges.
-        flipped = data.edges(:,1)>data.edges(:,2); data.edges(flipped,:) = [data.edges(flipped,2) data.edges(flipped,1)];
         [~, ia] = FindEdgeIndexOfVertPairs(TMesh.SE2V, data.edges);
         data.isSingularEdge = sparse(ia,ones(size(ia)),ones(size(ia)),size(data.edges,1),1);
         SEdgeValences = sparse(ia, ones(size(ia)), TMesh.singularValence, size(data.edges,1),1);
@@ -130,6 +129,8 @@ end
 % in neighborhood of a singular edge should
 % excluded from being able to be used. After a path is found, that path
 % should be removed from the dual graph.
+PathsIndex = sparse(data.numEdges, data.numEdges); % Index to path of tet2tet.
+Paths = {}; pathpos = 1;    
 for i=1:numel(MetaVertices)
     mvert = MetaVertices{i};
     vind = mvert.vind;
@@ -158,8 +159,6 @@ for i=1:numel(MetaVertices)
         dAdj(tets2Remove,data.numTetrahedra+seind)=100000;
     end
     
-    PathsIndex = sparse(data.numEdges, data.numEdges); % Index to path of tet2tet.
-    Paths = {}; pathpos = 1;
     for c = 1:numel(mvert.corners)
         corner = mvert.corners{c};
         
@@ -181,21 +180,11 @@ for i=1:numel(MetaVertices)
                 assert(false);
             end
             
-            if(all(~data.isBoundaryEdge([estart, eend])))
-                % add neighborhood info to P. to close loops.
-                tns = data.edgeCycles{estart};
-                tne = data.edgeCycles{eend};
-                
-                assert(any(P(2) == tns));
-                assert(any(P(end-1) == tne));
-                %% todo: construct full loops!
-                find(P(2) == tns
-                
-            end
-            
             % make sure previous path can't be used again.
             dAdj(P(2:end-1),:)=0; dAdj(:,P(2:end-1))=0;
-            PathsIndex(estart,eend) = pathpos; Paths{pathpos} = P; PathsIndex(eend,estart) = pathpos; pathpos = pathpos + 1;
+            
+            PathsIndex(estart,eend) = pathpos; Paths{pathpos} = P; pathpos = pathpos + 1;
+            PathsIndex(eend,estart) = pathpos; Paths{pathpos} = fliplr(P); pathpos = pathpos + 1;
         end
     end
 
@@ -485,6 +474,7 @@ end
 
 
 %% TODO:  prune generators based on regular holonomy?? currently fails. lots of false positives.
+% regular non manifold edges
 regularNMEdges = ARemoveB(ARemoveB(nonMEdges, SEdges),find(data.isBoundaryEdge));
 generatorsToRemove = [];
 for eiter = 1:numel(regularNMEdges)
@@ -508,8 +498,6 @@ save('cache/H1DualEdgeGenerators.mat','H1DualEdgeGenerators');
 save('cache/triangleToTransition.mat','triangleToTransition');
 save('cache/PathsIndex.mat','PathsIndex');
 save('cache/Paths.mat','Paths');
-
-
 
 if(Visualize)
     %% Visualize stuff

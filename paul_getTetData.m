@@ -54,7 +54,7 @@ function data = paul_getTetData(T,X,lite,force)
     E = [data.triangles(:,1) data.triangles(:,2) ; data.triangles(:,2) data.triangles(:,3) ; data.triangles(:,3) data.triangles(:,1)];
     [~,IA,IC] = unique(sort(E,2),'rows');
     data.edges = E(IA,:);
-    flipped = find(data.edges(:,1)<data.edges(:,2)); data.edges(flipped,:)=[data.edges(flipped,2) data.edges(flipped,1)];
+    flipped = find(data.edges(:,1)>data.edges(:,2)); data.edges(flipped,:)=[data.edges(flipped,2) data.edges(flipped,1)];
     data.numEdges = size(data.edges,1);
     data.trianglesToEdges = reshape(IC,data.numTriangles,3);
 
@@ -426,7 +426,7 @@ function data = paul_getTetData(T,X,lite,force)
     %Inds=find(~data.isBoundaryEdge); Inds = Inds(PrimalVolumeVertexSpanningTree(data.NonBoundaryEdges));
     %data.BoundaryLessPrimalSpanningTreeRelToEdges = Inds;
     
-    
+    assert(all(data.edges(:,1)<=data.edges(:,2)));
     
     
     
