@@ -428,6 +428,12 @@ function data = paul_getTetData(T,X,lite,force)
     
     assert(all(data.edges(:,1)<=data.edges(:,2)));
     
+    % compute primal vert/edge laplacian
+    data.VV2E = sparse(data.edges(:,1), data.edges(:,2), ones(data.numEdges,1), data.numVertices, data.numVertices);
+    data.VV2E = data.VV2E + data.VV2E';
+    data.vertDegrees = sum(data.VV2E)/2;
+    data.primalOneLaplacian = data.VV2E - diag(data.vertDegrees);
+    
     
     
 end
