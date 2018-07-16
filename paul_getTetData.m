@@ -105,8 +105,12 @@ function data = paul_getTetData(T,X,lite,force)
         data.dualGraph = graph(data.dualGraphAdjacency);
     end
     
+    % verts to tets
+    tetsToVertsIndicator = sparse(repmat((1:data.numTetrahedra)',4,1),data.tetrahedra(:),ones(4*data.numTetrahedra,1),data.numTetrahedra, data.numVertices);
+    data.tetsToVertsIndicator = tetsToVertsIndicator;
+    
     % get edgesToTets
-    tetsToEdgesIndicator = sparse(repmat((1:data.numTetrahedra)',6,1),data.tetsToEdges(:),ones(6*data.numTetrahedra,1));
+    tetsToEdgesIndicator = sparse(repmat((1:data.numTetrahedra)',6,1),data.tetsToEdges(:),ones(6*data.numTetrahedra,1),data.numTetrahedra, data.numEdges);
     data.tetsToEdgesIndicator = tetsToEdgesIndicator;
     if(~lite)
         
@@ -369,7 +373,7 @@ function data = paul_getTetData(T,X,lite,force)
                     % trying to carry orientation from tets. 1 tet alone
                     % has no orientation. gonna be lazy and hope users
                     % subdivide.
-                    error('trouble! cannot have tet with 2 boundary faces!');
+                    display('trouble! cannot have tet with 2 boundary faces!');
                 end
                 
                 startTris = intersect(tets2tris(1,:),neighboringTris);
