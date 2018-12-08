@@ -61,6 +61,34 @@ function z = octahedralGroup(type)
             ];
         
         z = axang2quat(axang);
+    elseif strcmp(type, 'axang')
+        axang = [1 0 0 0;  % identity
+            
+            % face rotations
+            1 0 0 pi/2; 1 0 0 pi; 1 0 0 3*pi/2; 
+            0 1 0 pi/2; 0 1 0 pi; 0 1 0 3*pi/2; 
+            0 0 1 pi/2; 0 0 1 pi; 0 0 1 3*pi/2; 
+            
+            % edge rotations
+            1 1 0 pi;
+            0 1 1 pi;
+            1 0 1 pi;
+            -1 1 0 pi;
+            0 -1 1 pi;
+            -1 0 1 pi;
+            
+            % corner rotations
+            1 1 1 2*pi/3;
+            1 1 -1 2*pi/3;
+            1 -1 1 2*pi/3;
+            1 -1 -1 2*pi/3;
+            1 1 1 4*pi/3;
+            1 1 -1 4*pi/3;
+            1 -1 1 4*pi/3;
+            1 -1 -1 4*pi/3;
+            ];
+        
+        z = axang;
     elseif strcmp(type, 'rotationCells')
         quats = octahedralGroup('quaternion');
         quatsdup = repRows(quats,3);
