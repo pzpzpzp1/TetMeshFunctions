@@ -29,7 +29,7 @@ function data = paul_getTetData(T,X,lite,force)
     data.tetsToTriangles = reshape(IC,data.numTetrahedra,4);
 
     counts = accumarray(IC,ones(size(IC)),[data.numTriangles 1]);
-    data.isBoundaryTriangle = double(counts == 1);
+    data.isBoundaryTriangle = double(counts == 1); % 16653:16655
     bt = data.triangles(find(data.isBoundaryTriangle),:);
     data.isBoundaryVertex = zeros(1,data.numVertices); data.isBoundaryVertex(unique(sort(bt(:))))=1;
     data.boundaryTriangles = find(data.isBoundaryTriangle);
@@ -432,12 +432,12 @@ function data = paul_getTetData(T,X,lite,force)
     
     assert(all(data.edges(:,1)<=data.edges(:,2)));
     
+    
+    
+    % compute incidence matrix
+    data.primalIncidenceMatrix = sparse([1:data.numEdges 1:data.numEdges]', [data.edges(:,1);data.edges(:,2)], [ones(data.numEdges,1) -ones(data.numEdges,1)]    ,data.numEdges,data.numVertices);
+    
     % compute primal vert/edge laplacian
-    data.VV2E = sparse(data.edges(:,1), data.edges(:,2), ones(data.numEdges,1), data.numVertices, data.numVertices);
-    data.VV2E = data.VV2E + data.VV2E';
-    data.vertDegrees = sum(data.VV2E)/2;
-    data.primalOneLaplacian = data.VV2E - diag(data.vertDegrees);
-    
-    
+    data.primalOneLaplacian = data.primalIncidenceMatrix'*data.primalIncidenceMatrix;
     
 end
