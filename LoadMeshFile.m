@@ -11,14 +11,21 @@ function [X,T]=LoadMeshFile(filename)
     X = X(:,1:3);
 
     metadata = fscanf(fid,'%s',1);
-    t = fscanf(fid,'%d',1);
-    tri = fscanf(fid,'%f',4*t);
-    metadata = fscanf(fid,'%s',1);
-    E = fscanf(fid,'%d',1);
-    edges = fscanf(fid,'%f',3*E);
-    metadata = fscanf(fid,'%s',1);
-    nT = fscanf(fid,'%d',1);
-    T = fscanf(fid,'%d',5*nT);
-    T = reshape(T,5,[])';
-    T = T(:,1:4);
+    if (strcmp(metadata,'Tetrahedra'))
+        nT = fscanf(fid,'%d',1);
+        T = fscanf(fid,'%d',5*nT);
+        T = reshape(T,5,[])';
+        T = T(:,1:4);
+    else
+        t = fscanf(fid,'%d',1);
+        tri = fscanf(fid,'%f',4*t);
+        metadata = fscanf(fid,'%s',1);
+        E = fscanf(fid,'%d',1);
+        edges = fscanf(fid,'%f',3*E);
+        metadata = fscanf(fid,'%s',1);
+        nT = fscanf(fid,'%d',1);
+        T = fscanf(fid,'%d',5*nT);
+        T = reshape(T,5,[])';
+        T = T(:,1:4);
+    end
 end
