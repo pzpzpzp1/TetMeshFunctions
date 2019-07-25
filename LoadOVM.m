@@ -1,16 +1,49 @@
 
-function HX = LoadOVM(filename)
+%% CAN'T LOAD MIXED ELEMENT MESHES!!!
+function [verts, edges, faces2verts, cells2verts, faces, cells] = LoadOVM(filename)
     ovmfid = fopen(filename,'r');
     fscanf(ovmfid,'OVM %s\n');
     fscanf(ovmfid,'Vertices\n');
     nv = fscanf(ovmfid,'%d',1);
-    HX = fscanf(ovmfid,'%f',3*nv);
-    HX = reshape(HX,3,[])';
+    verts = fscanf(ovmfid,'%f',3*nv);
+    verts = reshape(verts,3,[])';
     
-    % skipping
-    %Edges
-    %Faces
-    %Polyhedra
+    fscanf(ovmfid,'\nEdges\n');
+    nE = fscanf(ovmfid,'%d',1);
+    edges = fscanf(ovmfid,'%d',2*nE);
+    edges = reshape(edges,[],nE)'+1;
+    
+    fscanf(ovmfid,'\nFaces\n');
+    nF = fscanf(ovmfid,'%d',1);
+    faces = fscanf(ovmfid,'%d');
+    faces = reshape(faces,[],nF)';
+    faces = faces(:,2:end)+1;
+    
+    fscanf(ovmfid,'\nPolyhedra\n');
+    nC = fscanf(ovmfid,'%d',1);
+    cells = fscanf(ovmfid,'%d');
+    cells = reshape(cells,[],nC)';
+    cells = cells(:,2:end)+1;
+    
+    % convert half edge indices to edge indices 
+    % convert half face indices to face indices 
+    faces = ceil(faces/2);
+    cells = ceil(cells/2);
+    
+    % extract face to vertices and cell to vertices
+    faces2verts = [];
+    for i=1:size(faces,2)
+        faces2verts = [faces2verts edges(faces(:,i),:)];
+    end
+    faces2verts = sort(faces2verts,2);
+    faces2verts = faces2verts(:,1:2:end);
+    
+    cells2verts = [];
+    for i=1:size(cells,2)
+        cells2verts = [cells2verts faces2verts(cells(:,i),:)];
+    end
+    cells2verts = sort(cells2verts,2);
+    cells2verts = cells2verts(:,1:size(faces,2):end);
     
     fclose(ovmfid);
 end
