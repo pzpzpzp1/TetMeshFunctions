@@ -92,13 +92,13 @@ function z = octahedralGroup(type)
     elseif strcmp(type, 'rotationCells')
         quats = octahedralGroup('quaternion');
         quatsdup = repRows(quats,3);
-        %quatsdup = repmat(quats,1,3);
-        %quatsdup = reshape(quatsdup', 4, 24*3)';
         mats = quatrotate(quatsdup, repmat(eye(3),24,1));
-        
         mats(find(mats>.5))=1;
         mats(find(mats<-.5))=-1;
         mats(find(mats<.5 & mats>-.5))=0;
+        
+%         axangs = octahedralGroup('axang');
+%         axang2rotm(axangs)
         
         z = mat2cell(mats,ones(24,1)*3,3);
         z = cellfun(@transpose,z,'un',0);
