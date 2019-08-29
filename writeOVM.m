@@ -1,5 +1,12 @@
 
 %% CAN'T LOAD MIXED ELEMENT MESHES!!!
+function writeOVM(filename,X,tets,properties)
+    error('not written!!');
+    %fid = fopen(filename,'w');
+    
+    
+end
+
 function [verts, edges, faces2verts, cells2verts, faces, cells, properties] = LoadOVM(filename)
     ovmfid = fopen(filename,'r');
     fscanf(ovmfid,'OVM %s\n');
