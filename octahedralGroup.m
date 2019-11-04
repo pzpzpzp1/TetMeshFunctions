@@ -145,6 +145,40 @@ function z = octahedralGroup(type)
             assert(norm(rcs{i}*rcs{z(i)}-eye(3))<.00001);
         end
         %}
+    elseif strcmp(type, 'pythonlist')
+        O = octahedralGroup('rotationCells');
+        fprintf('[')
+        for i=1:24
+            mat = O{i};
+            fprintf('[')
+            for j=1:3
+                fprintf('[')
+                for k=1:3
+                    fprintf(num2str(mat(j,k)))
+                    if k~=3; fprintf(', '); end;
+                end
+                if j~=3; fprintf('], '); else; fprintf(']'); end;
+            end
+            if i~=24;fprintf('],   '); else; fprintf(']'); end;
+        end
+        fprintf(']\n\n')
+    elseif strcmp(type, 'pythontuple')
+        O = octahedralGroup('rotationCells');
+        fprintf('(')
+        for i=1:24
+            mat = O{i};
+            fprintf('(')
+            for j=1:3
+                fprintf('(')
+                for k=1:3
+                    fprintf(num2str(mat(j,k)))
+                    if k~=3; fprintf(', '); end;
+                end
+                if j~=3; fprintf('), '); else; fprintf(')'); end;
+            end
+            if i~=24;fprintf('),   '); else; fprintf(')'); end;
+        end
+        fprintf(')\n\n')
     elseif strcmp(type, 'name')
         z = {'I'
             ,'fx1/4'
