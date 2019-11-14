@@ -1,10 +1,39 @@
 
-%% CAN'T LOAD MIXED ELEMENT MESHES!!!
-function writeOVM(filename,X,tets,properties)
-    error('not written!!');
-    %fid = fopen(filename,'w');
+
+function writeOVM(filename,X,T,properties)
+    error('gahh my conversion to half faces isnt working right. just go email it to dbommes.');
+    
+    assert(numel(properties)==0);
+
+    fid = fopen(filename,'w');
+    data = getTetDataRT(T,X,1);
+    
+    edgesToVerts = data.edges;
+    facesToEdges = data.trianglesToEdges;
+    
+    tets2HalffaceVerts = reshape(data.tetrahedra(:,[1 2 3 2 3 4 3 4 1 1 2 4])',3,[])';
+    tets2HalfFaces = reshape(1:4*data.numTetrahedra,4,[])';
+    
+    halfFaceInds = [[1:4*data.numTetrahedra]' tets2HalffaceVerts];
+    threeHFs2EdgeVerts = sort(reshape(tets2HalffaceVerts(:,[1 2 2 3 3 1])',2,[])',2);
+    
+    [aa,bb]=ismember(threeHFs2EdgeVerts, sort(data.edges,2),'rows');
+    halfFace2Edges = reshape(bb,3,[])';
     
     
+    fprintf(fid,'OVM ASCII\nVertices\n%d\n',size(X,1));
+    fprintf(fid,'%f %f %f\n',X);
+    
+    fprintf(fid,'Edges\n%d\n',data.numEdges);
+    fprintf(fid,'%d %d\n',edgesToVerts-1);
+    
+    fprintf(fid,'Faces\n%d\n',data.numTriangles*2);
+    fprintf(fid,'3 %d %d %d\n',halfFace2Edges-1);
+    
+    fprintf(fid,'Polyhedra\n%d\n',data.numTetrahedra);
+    fprintf(fid,'4 %d %d %d %d\n',tets2HalfFaces-1);
+    
+    fclose(fid);
 end
 
 function [verts, edges, faces2verts, cells2verts, faces, cells, properties] = LoadOVM(filename)
